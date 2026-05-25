@@ -1,0 +1,127 @@
+# LAUNCH ACCELERATOR — INVESTMENT THESIS
+# Production version for Venture Scout AI
+# Source of truth for synthesis prompts and signal scoring
+
+---
+
+## 1. Core Mandate — What LAUNCH Actually Funds
+
+LAUNCH writes $125,000 checks at pre-seed stage. This is earlier than most institutional capital. The entry bar is: **product exists + at least one real external user or customer + exceptional founder execution**.
+
+### Real Portfolio Examples (calibrate to these)
+
+| Company | What They Do | Why LAUNCH Funded |
+| --- | --- | --- |
+| Monsha | AI lesson planning for teachers | Niche vertical AI, international founders, early users |
+| NextVisit | AI clinical documentation for behavioral health | Vertical AI in healthcare, specific workflow |
+| SKN Systems | Wind tunnel data analytics for motorsport | Extremely niche, B2B, software serving physical industry |
+| Prandtl Dynamics | Acoustic counter-drone software | Deep tech software for defense vertical |
+| Actuality | AI RFP automation for construction | Vertical AI for unsexy but large market |
+| HeyHire | Hiring platform for hourly workers | Specific workforce segment, clear pain |
+| PitchPrfct | Outbound SMS sales automation | Simple, specific sales tool with paying customers |
+| Argonath | AI software delivery for US defense | Defense tech software, capital-efficient |
+
+### Entry Criteria
+
+**Hard minimum:** Working product that can be demonstrated + at least one external person using it (paid or free).
+
+**Traction is contextual, not a fixed number:**
+- $200 MRR growing = good. $2k MRR growing = great.
+- 10 active users who didn't pay = acceptable at this stage.
+- One named school, clinic, or company using the product = strong signal for B2B.
+- ProductHunt launch with engagement = public validation signal.
+
+**No pedigree requirement.** Portfolio includes founders without college degrees, international founders, non-STEM backgrounds. Execution is everything.
+
+```
+[Product Live + Any Real User] ──> [LAUNCH $125K Check] ──> [Media Distribution] ──> [Tier-1 Follow-on]
+    (Pre-seed, pre-institutional)      (Post-Money SAFE)        (TWiST / Ecosystem)      (YC, a16z, Sequoia)
+```
+
+---
+
+## 2. Sector Thesis — Vertical AI for Any Operational Problem
+
+The unifying pattern across LAUNCH's portfolio is: **software solving a specific operational problem in any vertical, where a smart operator-founder can build a capital-efficient solution**. The vertical can be unsexy, niche, regulated, or physically adjacent. What matters: the product is software, it scales without proportional capital, and a real human or business needs it.
+
+**In-scope verticals (not exhaustive):**
+- Construction, architecture, real estate, property tech
+- Defense tech software, government AI, intelligence tools, drone tech
+- Education, edtech, teacher tools, tutoring, curriculum
+- Healthcare, clinical documentation, behavioral health, prior auth, telehealth
+- Hourly/frontline workforce, hiring, scheduling, training, retention
+- Legal, compliance, finance, accounting automation
+- Niche industry analytics (motorsport, agriculture, maritime, logistics)
+- E-commerce, consumer products, media, creator tools
+- Developer tools, AI infrastructure, data platforms, agent frameworks
+- Supply chain, transit, logistics software
+
+**Out of scope:** Hardware manufacturing, drug discovery with lab costs, physical infrastructure requiring proportional capital per new customer.
+
+### AI Frameworks & Agentic Infrastructure
+
+The market for thin wrappers on frontier LLM APIs is dead. We back technical breakthroughs with structural defensibility: proprietary data flywheels, edge efficiencies, or novel orchestration architectures.
+
+- **Agentic Orchestration:** Multi-agent systems managing complex workflows with state, memory, and self-correction. Live deployment with measurable task completion rates.
+- **Edge & Local Models:** Domain-specific models running on-device or at the edge. Most compelling when tied to a paying vertical (healthcare, legal, manufacturing).
+- **AI-Native Developer Infrastructure:** Shared context management, memory alignment, and CI/CD tooling for hybrid human-AI engineering teams.
+
+### Knowledge Graphs & Contextual Intelligence
+
+Enterprise data is fragmented. The next wave of enterprise search and automation maps relationships, not strings.
+
+- **Executive Intelligence Engines:** Knowledge graph software synthesizing unstructured enterprise data into queryable, verifiable context. Enterprise pilots with measurable ROI are the ideal signal.
+- **Dynamic Semantic Networks:** Systems extracting and graphing institutional knowledge from Slack, email, GitHub, and internal docs. Strongest when the founder has earned domain insight in the target vertical.
+
+### Next-Generation Systems of Record
+
+Every major enterprise software wave is anchored by who owns the underlying data layer. We source the next generation of unglamorous, deeply defensible operational backbones.
+
+- **AI-Native SoRs:** Platforms where data entry, categorization, and reconciliation are automated via AI — replacing legacy manual management. Paying customers who have ripped out a prior system are the gold standard.
+- **Continuous Compliance & Audit SoRs:** Real-time, programmatic tracking of security posture, financial compliance, and legal risk. Single source of truth for corporate governance.
+
+### Supply Chain & Logistics Operating Systems
+
+Legacy EDI infrastructure, fragmented communications, and geopolitical volatility create acute operational pain. We back software injecting efficiency into physical distribution.
+
+- **Autonomous Route & Freight Optimization:** Real-time spatial telemetry and predictive rerouting. Meaningful when connected to live freight or warehouse operations.
+- **Document & Visibility Automation:** Platforms converting bills of lading, customs data, and manifests into clean, programmable pipelines.
+
+### Fintech-Crypto & On-Chain Financial Rails
+
+We back applications merging traditional payment rails with compliant decentralized infrastructure to accelerate capital velocity.
+
+- **Programmable Treasury Operating Systems:** Non-custodial corporate treasury with on-chain auditing, yield layers, and stablecoin-to-ACH pipelines.
+- **On-Chain Settlement Primitives:** Infrastructure settling cross-border transactions in seconds while abstracting crypto complexity from the end user.
+- **Privacy-First Compliance Tools:** ZK and cryptographic tooling meeting institutional compliance mandates.
+
+---
+
+## 3. Sourcing Gatekeepers
+
+### Automatic Green Flags (Fast-Track to Deep Dive)
+
+- Live product with real paying customers or engaged DAUs
+- Traction at or approaching Goldilocks Zone thresholds
+- Founder is shipping product updates publicly, iterating on real user feedback
+- High-agency response to obstacles — they built around problems, not through them
+- Technical founder who built the core product themselves
+- Any background, any school, any country — if they're building something people love
+
+### Automatic Passes (No Exceptions)
+
+- No product in market. A deck, a business plan, a Figma prototype, a waitlist-without-product, or an idea is an immediate pass.
+- Non-technical founding team that cannot build or iterate the primary product without outsourcing
+- Stealth mode citing fear of idea theft — founders who won't show the product cannot be evaluated
+- Broken cap table: passive entity or non-building advisor holding >25% equity
+- Series C-stage or later — already consensus, already institutional, not our moment
+
+---
+
+## 4. LAUNCH Positioning
+
+When a founder is in the Goldilocks Zone but lacks the polish and scale required by later-stage institutional investors, the LAUNCH value proposition is specific:
+
+> *"We invest at the moment of real traction — before the story is clean and before the metrics demand a premium valuation. We inject capital, framework discipline, and immediate activation through the LAUNCH media ecosystem to compress the timeline from Goldilocks to Tier-1 follow-on."*
+
+The right founder for LAUNCH is not the one with the best resume or the most elegant deck. It is the one already building something people want, moving faster than anyone else in their space, and hungry enough to turn early traction into a category-defining company.

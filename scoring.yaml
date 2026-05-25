@@ -1,0 +1,158 @@
+# LAUNCH ACCELERATOR — SOURCING RUBRIC
+# Production version for Venture Scout AI
+# Aligned to the Goldilocks Zone criteria
+
+---
+
+## Pre-Condition Gate (Run Before Any Scoring)
+
+**A product must be in market before this rubric applies at all.**
+
+If signals show no live product — only a deck, a business plan, a Figma file, a waitlist with no shipped code, or an idea — mark IMMEDIATE PASS and do not score. This is non-negotiable. LAUNCH does not invest in plans, decks, or ideas, ever.
+
+The only exception is the Wildcard category (see MEDIUM TIER below).
+
+---
+
+## Part 1: Tier Triage
+
+LAUNCH writes $125K checks at pre-seed. The traction bar is much lower than institutional VCs.
+Their actual portfolio includes companies with: one paying customer, 50 active free users,
+a single school district pilot, a motorsport team as the first customer. Score accordingly.
+
+Bucket every deal based on: product exists → real external user/customer → velocity.
+
+### CRITICAL TIER — Fast-Track to Deep Dive
+
+*Product in market. Real external traction. High execution velocity. No external equity.*
+
+**Any of these qualifies as CRITICAL traction:**
+- Any MRR growing month-over-month (even $200/month growing 30% MoM is strong at this stage)
+- Any DAU count with week-over-week retention signal
+- Multiple paying customers, even at small amounts
+- Named pilot with a real organization (school, clinic, city, company) and measurable outcome
+- ProductHunt launch with 200+ upvotes = public validation
+- Show HN with 100+ points = community pull signal
+
+**Velocity signals (required for CRITICAL):**
+- Founder ships updates publicly, responds to users in comments, iterates in the open
+- Product visibly improved in the last 30 days based on user feedback
+
+### HIGH TIER — Priority Watch (14-30 Day Tracking Window)
+
+*Product in market. At least one external user or customer. Clear execution signal.*
+
+**What qualifies:**
+- Product is live and demonstrably works (demo, GitHub repo, ProductHunt page, landing page with pricing)
+- At least one external person is using it (free or paid, named or anonymous)
+- Founder is actively building and responsive — not planning
+- For niche verticals: first customer or pilot in place, even informal
+
+**Tracking rationale:** Watch for 14-30 days to see if user/customer count grows and founder keeps shipping.
+
+### MEDIUM TIER — Has Product, No External Traction Yet
+
+*Product is live and working. No external users yet, or traction is very early.*
+
+**Who qualifies:**
+- Working product that can be demonstrated, but launched very recently (< 2 weeks)
+- Side project that just went public with early engagement (first day/week of PH launch)
+- Deep tech with working prototype but no users yet — acceptable only with strong founder signal
+- Research spinout with working code, pre-customer
+
+**Who does not qualify:**
+- Anyone without a working product that can be demonstrated right now
+- Figma prototypes, slide decks, waitlists with no shipped code
+
+### LOW TIER — Immediate Pass
+
+*Apply instantly. Do not score.*
+
+- No product in market whatsoever (deck, plan, idea, Figma, business model canvas)
+- Any external equity financing: VC, angel, equity-taking accelerator (YC, Techstars), convertible notes, any disclosed round
+- Already in YC, Sequoia, a16z, or any VC portfolio — theme intelligence only
+- Signals referencing Series A, B, C, D
+- Capital-intensive non-software: hardware manufacturing, drug discovery with lab costs, physical infrastructure
+
+### LOW TIER — Immediate Pass (Archive Without Scoring)
+
+*Apply instantly. Do not run the dimensional scorecard.*
+
+- No product in market: deck, plan, idea, Figma prototype, business model canvas, pitch document
+- Any external equity financing: VC, angel, equity-taking accelerator (YC, Techstars), convertible notes, disclosed round
+- Signals referencing Series A, B, C, D — already past Launch's entry point regardless of amount
+- Already in YC, Sequoia, a16z, or any VC portfolio — theme intelligence only, never an opportunity
+- Non-technical founders unable to build the core product themselves
+- Stealth mode with refusal to show product — cannot be evaluated
+- Broken cap table: passive entity or non-building advisor >25% equity
+- Capital-intensive non-software product: hardware manufacturing, drug discovery with lab costs, physical infrastructure where new customers require proportional capital spend
+
+---
+
+## Part 2: Dimensional Scorecard
+
+Run this scorecard only for CRITICAL or HIGH tier. For MEDIUM (Wildcard), score only dimensions 1 and 3.
+
+### Dimension 1 — Traction & Product-Market Fit (Weight: 35%)
+
+*Is the product already working in the market?*
+
+- **5:** At or above Goldilocks thresholds. Enterprise: $2k+ MRR, 20%+ MoM growth. Consumer: 3k+ DAU, 5%+ WoW growth. Deep tech: functional prototype with paid or committed pilots. Users are expanding usage without a sales push.
+- **3:** Below Goldilocks threshold but growing. Revenue or DAU exists, trajectory is positive, growth rate is real but not yet explosive. Founder can articulate why the next 60 days will close the gap.
+- **1:** Product is live but no measurable traction. Zero paying customers. DAU flat or declining. "We launched last week and haven't started marketing yet."
+
+### Dimension 2 — Velocity & Agency (Weight: 30%)
+
+*How fast does the line move?*
+
+- **5:** Ships code and product updates publicly, daily or weekly. Treats obstacles as temporary inconveniences. If you give feedback on Tuesday, there is a shipped response by Thursday. Leverages agentic AI tooling to out-build teams 10x their size.
+- **3:** Weekly sprint cycles with visible output. Steady pace. Real product iteration happening, but lacks the explosive urgency of a 5.
+- **1:** Monthly cycles. Waiting for funding to hire before shipping. "We need a designer before we can launch the next feature."
+
+### Dimension 3 — Market Dynamics & Power-Law Potential (Weight: 20%)
+
+*Can this company return a fund if it works?*
+
+- **5:** Structural architectural plays in massive markets. Building a new System of Record, essential supply chain infrastructure, or AI-native financial rails that could dominate a multi-billion-dollar space with defensible moats.
+- **3:** Vertical SaaS in a real but capped niche. Highly profitable exit possible, but requires a perfect execution path to reach true venture-return scale.
+- **1:** Localized tools, agency-model businesses, or thin feature wrappers on frontier LLM APIs with no structural defensibility. Feature, not company.
+
+### Dimension 4 — Cap Table & Deal Mechanics (Weight: 15%)
+
+*Is the deal clean enough for downstream institutional scale?*
+
+- **5:** Clean founder equity (50/50 or 60/40). Raising on standard Post-Money SAFEs with market-rate caps. No passive advisory bloat.
+- **3:** Minor cap table clutter (university advisors at 3-5%) or slight equity imbalance, but fixable before the next institutional round.
+- **1:** Passive entity or non-building advisor owns >25%. Or combative early pricing / non-standard terms that will create friction at Series A.
+
+---
+
+## Part 3: Output Card Format
+
+Every deal that clears the pre-condition gate should produce a card in this format:
+
+```
+[TIER] — Company / Founder Handle
+─────────────────────────────────────────────
+Traction:  $X MRR (+Y% MoM) | Z DAU (+W% WoW) | [prototype stage]
+Score:     X.X / 5.0  (Traction: N | Velocity: N | Market: N | Mechanics: N)
+Signals:   [2-3 specific signal strings from raw data — URLs, posts, repos]
+Takeaway:  [1-2 sentences: what makes this founder worth a call, or why it's a pass]
+Action:    [Fast-track to call | Watch for 30 days | Wildcard hold | Archive]
+```
+
+### Example
+
+```
+[CRITICAL] — github.com/somefounder / @handle_on_x
+─────────────────────────────────────────────
+Traction:  $3,400 MRR (+34% MoM), 8 paying enterprise customers
+Score:     4.5 / 5.0  (Traction: 5 | Velocity: 5 | Market: 4 | Mechanics: 4)
+Signals:   "Show HN: I built X" — 312 points, 89 comments (2 days ago)
+           GitHub repo: vercel.json + Stripe integration, 47 commits in 10 days
+           X thread with live demo video, 3 customers commenting
+Takeaway:  Solo founder shipped an enterprise-grade workflow tool in 6 weeks,
+           already generating MRR from paying customers found through HN.
+           No pedigree signals — pure execution evidence.
+Action:    Fast-track to call
+```

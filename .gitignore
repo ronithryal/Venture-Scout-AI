@@ -1,0 +1,20 @@
+node_modules/
+dist/
+
+# Local data — contains scraped opportunities, outcomes, and seen URLs.
+# Do not commit; these are machine-local and may contain sensitive deal notes.
+data/
+
+# Environment variables (API keys)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/*.log
+
+# OS/editor
+.DS_Store
+.vscode/
+*.swp
