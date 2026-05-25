@@ -45,16 +45,33 @@ In parallel, **Hermes** (an agentic research agent) conducts deep conviction ver
 
 ## Self-Improving Scoring
 
-The system records every analyst decision — Interested, Pass, or Flag — along with an optional written note explaining the reasoning. When 3 or more noted decisions have accumulated, a feedback digest is injected into future scoring prompts:
+The system records every analyst decision — Interested, Pass, or Flag — along with an optional written note explaining the reasoning. All decisions are persisted to `data/decisions.json` for historical tracking. When 3 or more decisions with notes accumulate, a feedback digest is injected into future scoring prompts:
 
 ```
-VC FEEDBACK FROM PAST DECISIONS:
-- PASS: "rushdb" — "too infrastructure-heavy for our pre-seed focus"
+VC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):
 - INTERESTED: "semble" — "great wedge into a fragmented market, founder has prior exit"
+- PASS: "rushdb" — "too infrastructure-heavy for our pre-seed focus"
 - PASS: "aproxymade" — "no verifiable team, domain 3 weeks old"
+Apply: weight factors that drove past "interested" decisions higher; downgrade factors that repeatedly led to "pass".
 ```
 
-The model uses this context to recalibrate scoring for future companies — effectively learning the fund's investment taste without retraining. The more decisions the analyst logs with notes, the more calibrated the output becomes.
+**How calibration works:**
+
+1. **Analyst decision** — Mark a company Interested, Pass, or Flag with an optional note explaining the reasoning
+2. **Decision logged** — Metadata persisted: company ID, tier, score, outcome, note, timestamp
+3. **Threshold check** — System monitors for 3+ decisions with notes (shown in header: "Learning (2/3 notes)" → "Calibrated (3 decisions)")
+4. **Feedback injection** — On next scoring pass, logged decisions are formatted and prepended to the LLM prompt
+5. **Recalibration** — Gemini weights scoring factors based on historical patterns (e.g., if all "interested" deals had founder exits, founder signal gets stronger weighting)
+6. **Continuous learning** — Each new noted decision refines the calibration; analyst sees calibration status update in real-time
+
+**Key constraints:**
+
+- Feedback only activates with 3+ noted decisions (insufficient signal = silent mode)
+- Scoring rubric weights stay fixed (35/30/20/15) — only the LLM's framing adapts
+- Digest limited to last 10 decisions (~400 tokens) to avoid prompt bloat
+- "Clear History" button (in Shortlist/Pass tabs) resets the log if strategy changes
+
+The more decisions the analyst logs with notes, the more tuned the output becomes to the fund's investment taste — without retraining or changing the underlying rubric.
 
 ---
 
@@ -94,11 +111,14 @@ All synthesis passes use JSON-mode output with automatic truncation repair — b
 ## Dashboard Features
 
 - **Deal Flow tab** — tiered opportunity cards with traction evidence, thesis takeaway, GitHub/HN enrichment, and credibility badge
-- **Shortlist tab** — archive of all Interested/Pass/Flag decisions; filterable by outcome
+- **Shortlist tab** — archive of all Interested decisions with scores, analyst notes, and timestamps; includes "Clear History" button to reset decision log
+- **Pass List tab** — archive of all Pass decisions; same decision history view as Shortlist
+- **Flagged tab** — low-credibility or unverifiable opportunities held for potential future re-check
 - **Themes tab** — investment theme clusters with momentum indicators and multi-firm evidence
 - **Watchlist** — add any X handle, company, topic, Reddit community, or URL for continuous monitoring
 - **Targeted Re-scan** — supply a list of company names; the system searches Exa for fresh signals and re-scores them directly into Deal Flow
 - **Founder Themes tab** — what builders (not VCs) are publicly discussing; leading indicator for thesis formation
+- **Calibration Indicator** (header) — shows feedback loop status: "Calibrated (N decisions)" when 3+ noted decisions are active, or "Learning (N/3 notes)" when below threshold
 
 ---
 

@@ -2,6 +2,40 @@
 
 ---
 
+### 2026-05-25 — Analyst feedback loop: fund taste learns in real-time from decisions
+
+The scoring engine now learns from every analyst decision, automatically calibrating future scores toward the fund's investment taste without changing the underlying rubric. This closes the feedback loop: the more notes an analyst adds to their Interested/Pass decisions, the more the scorer adapts to their patterns.
+
+**How it works:**
+
+1. **Analyst marks a decision** (Interested, Pass, or Flagged) and optionally adds a note explaining their reasoning
+2. **System logs the decision** with full metadata: company, tier, score, outcome, note, timestamp
+3. **Feedback reaches threshold** when 3+ decisions have notes (showing sufficient signal)
+4. **On next scoring pass**, the logged decisions are formatted and injected into the LLM prompt
+5. **LLM weights factors** based on past decisions (e.g., if all "interested" deals were founder-led, founder signal gets boosted)
+6. **Analyst sees status** in the dashboard header: "Calibrated (N decisions)" or "Learning (N/3 notes)"
+
+**Analyst visibility:**
+
+- Calibration indicator in header shows whether feedback is active or still learning
+- Shortlist and Pass List tabs show all past decisions with scores, notes, and timestamps
+- "Clear History" button resets the feedback loop if strategy changes
+- No intervention needed — learning happens automatically with every decision
+
+**Why this matters:**
+
+Each fund has a distinct investment taste: one may value founder pedigree, another shipping velocity, another market size. Pre-seed investors especially make snap decisions based on intangible signals (founder fit, thesis wedge) that don't fit rubric dimensions. This loop captures that taste in real time and injects it into scoring, making the AI a true extension of the analyst's judgment rather than a static rubric engine.
+
+**Constraints maintained:**
+
+- Scoring rubric weights unchanged (35/30/20/15)
+- Signal tier thresholds fixed
+- Only the LLM's contextual framing changes based on feedback
+- Feedback only activates with 3+ noted decisions (insufficient signal = silent)
+- Token budget capped at ~400 tokens (10 decisions max) to avoid prompt bloat
+
+---
+
 ### 2026-05-25 — Scan pipeline hardened: date window accuracy and crash resistance
 
 **Grok X was ignoring `lastScanned` and always fetching the same 10-day window.** Each scan is supposed to fetch only content published after the previous scan, using `sinceDate` (derived from `lastScanned`, clamped to 3 days minimum). Grok X was ignoring this and recomputing its own hardcoded 10-day window locally — meaning it always pulled the same posts, adding no incremental signal after the first run. Now passes `sinceDate` from the pipeline into `grokXFromHandles` so the Grok date filter respects the same window as every other source.

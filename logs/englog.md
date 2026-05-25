@@ -2,6 +2,55 @@
 
 ---
 
+### 2026-05-25 — Feedback-steered scoring system: in-context self-improvement loop
+
+Implemented a closed-loop feedback mechanism that learns from analyst decisions to calibrate scoring toward the fund's investment taste. The system persists all analyst actions (Interested/Pass/Flag) with optional written notes, then injects past decisions back into the LLM prompt to steer future scoring.
+
+**Decision Logger**
+
+All analyst decisions are logged to `data/decisions.json` with full metadata: company ID, tier, composite score, decision outcome, written note, and timestamp. The logger is called from `/api/outcomes` whenever a decision is recorded, ensuring no analyst actions are missed. Decisions survive server restarts via persistent JSON storage.
+
+**Feedback Digest Builder**
+
+The `buildFeedbackDigest()` function filters logged decisions to only include those with non-empty analyst notes (reasoning field), requiring a minimum of 3 noted decisions before returning any feedback content. When the threshold is met, it formats the last 10 decisions (oldest first) into a compact block:
+
+```
+VC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):
+- INTERESTED: "company-slug" — "note from analyst"
+- PASS: "company-slug" — "reason for pass"
+...
+Apply: weight factors that drove past "interested" decisions higher; downgrade factors that repeatedly led to "pass".
+```
+
+Token count is clamped at ~400 tokens max (10 decisions × 40 tokens avg per decision) to avoid prompt bloat.
+
+**Prompt Injection**
+
+The feedback digest is injected into three scoring pipelines:
+1. Initial scan scoring (line 2302)
+2. Targeted scan scoring (line 2722)
+3. Re-scoring when analyst marks opportunity "interested" (line 3055)
+
+Placement is strategic: digest appears *after* the scoring rubric and *before* deep tech guidance, so the LLM sees the feedback as calibration context alongside specialized guidance, not as overriding instruction.
+
+**UI Calibration Indicator**
+
+Header now displays a color-coded chip showing feedback loop status:
+- **Green** (Calibrated): Active when 3+ noted decisions exist. Displays "Calibrated (N decisions)".
+- **Amber** (Learning): Shown when below threshold. Displays "Learning (N/3 notes)".
+
+Status is computed via `/api/decisions/calibration-status` (GET) which counts noted decisions from `outcomeNotes` record and total logged decisions.
+
+**Clear History**
+
+Shortlist and Pass List tabs include a "Clear History" button that calls DELETE `/api/decisions`, resetting the decisions array to `[]` and the feedback loop. This allows the VC to reset learned taste if investment strategy changes materially.
+
+**Unchanged Scoring Rubric**
+
+The dimensional scoring weights (Traction 35%, Velocity 30%, Market 20%, Mechanics 15%) and SignalTier thresholds remain fixed. Only the LLM's *framing* changes — it receives feedback showing which past decisions moved the needle, then applies that context when scoring new deals.
+
+---
+
 ### 2026-05-25 — Grok API format fix, OpenAI removal, isWithinWindow fix
 
 A diagnostic review (Perplexity audit) identified three root-cause bugs responsible for 0-result scans following the Grok integration.
