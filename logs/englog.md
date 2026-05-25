@@ -2,6 +2,64 @@
 
 ---
 
+### 2026-05-25 — Grok API format fix, OpenAI removal, isWithinWindow fix
+
+A diagnostic review (Perplexity audit) identified three root-cause bugs responsible for 0-result scans following the Grok integration.
+
+**Bug 1: Wrong API format for xAI Responses API**
+
+The original `grokXSearch` code was built against the OpenAI Chat Completions schema and was never updated when xAI switched to their Responses API. Specific mismatches:
+
+| Field | Wrong (OpenAI Chat) | Correct (xAI Responses) |
+|---|---|---|
+| Endpoint | `api.x.ai/v1/chat/completions` | `api.x.ai/v1/responses` |
+| Request body | `messages: [{role, content}]` | `input: [{role, content}]` |
+| Token limit | `max_tokens` | `max_output_tokens` |
+| Response path | `data.choices[0].message.content` | `data.output[].content[].type === 'output_text'` → `.text` |
+
+Fix: `grokXFromHandles` rewritten from scratch against the Responses API schema. Response parsing now walks `data.output` blocks, flattens `content[]`, and finds the block where `type === 'output_text'`.
+
+**Bug 2: x_search tool name typo + missing `allowed_x_handles`**
+
+The `tools` array specified `type: 'xsearch'` (no underscore). The xAI Responses API requires `type: 'x_search'`. Without the correct name, the tool was ignored — no handle filter, no date filter, Grok returned arbitrary results.
+
+Additionally, `allowed_x_handles` (the native per-call handle filter) was never populated. This meant Grok searched all of X rather than the tracked handle set.
+
+Fix: corrected to `type: 'x_search'`, added `allowed_x_handles: batch` (batched in groups of 10, the API maximum), added `from_date: effectiveFromDate` for API-level date filtering.
+
+**Bug 3: `extractLiveThemes` gated behind `OPENAI_API_KEY`**
+
+`extractLiveThemes()` returned early with `if (!EXA_API_KEY || !OPENAI_API_KEY) return []`. The function uses Gemini for synthesis; OpenAI was never called inside it. With no `OPENAI_API_KEY` set, `liveThemes` came back `[]`, `searchThemes` fell back to three hardcoded generic strings ("AI agents for business workflows", "developer infrastructure AI", "fintech payments"), Stage 2 searches ran against these broad terms, and every result triggered `isConsensus()` or noise filters.
+
+Fix: guard changed to `if (!EXA_API_KEY || !GEMINI_API_KEY) return []`.
+
+**`extractLiveThemesAgentic` — OpenAI fully replaced with Gemini**
+
+`extractLiveThemesAgentic` was calling `openai.chat.completions.create()` with tool-calling for agentic theme verification. With OpenAI removed from the project, this was a dead code path that returned `[]` silently on every call, always triggering the static `extractLiveThemes` fallback (which was also broken per Bug 3 above).
+
+Rewrite: function now runs up to 5 targeted Exa builder-verification searches using `exaSearch()` directly (no LLM tool-calling required), then calls `synthesize<{ themes: string[] }>()` (Gemini) with all signals + verification evidence. The "verify before committing" intent is preserved without the OpenAI dependency.
+
+**Removed: OpenAI import, client, and key constant**
+
+With `extractLiveThemesAgentic` rewritten, `openai.chat.completions.create()` had no remaining callers. Removed:
+- `import OpenAI from 'openai'`
+- `const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''`
+- `const openai = new OpenAI({ apiKey: OPENAI_API_KEY })`
+
+Pipeline is now Gemini + Exa + Grok with no OpenAI dependency.
+
+**Stage 2B `isWithinWindow` post-filter removed**
+
+After Grok results were fetched, `isWithinWindow(item.publishedDate, recent10)` was applied as a post-filter. Most Grok results have `publishedDate: undefined` (the API returns structured post data, not ISO date strings in the text output). `isWithinWindow` returns `false` for undefined dates when `recent10` is set — silently dropping every result. Since date filtering is now applied at the API level via `from_date` in the `x_search` tool config, the post-filter was redundant and actively harmful.
+
+**`seen.json` cleared**
+
+The 3-day TTL dedup cache had accumulated URLs from the broken Grok era (noise posts from arbitrary handles). Deleted to give the next scan a clean slate. Schema remains `{ entries: { url, ts }[] }` — file is recreated automatically on next `saveSeenUrls()` call.
+
+**TypeScript clean after all changes.**
+
+---
+
 ### 2026-05-25 — Three pipeline fixes + scan-crash hardening
 
 **1. `grokXFromHandles` — `sinceDate` threading**

@@ -12,6 +12,32 @@
 
 ---
 
+### 2026-05-25 — Grok integration repaired: pipeline restored from 0 results
+
+A diagnostic review identified three root-cause bugs introduced during the Grok API integration that caused every scan to return 0 startup opportunities:
+
+**Grok was calling the wrong API endpoint with the wrong request format.** The code was using the OpenAI Chat Completions format (`messages[]`, `max_tokens`) against xAI's Responses API, which uses a different schema (`input[]`, `max_output_tokens`). Every Grok call was silently failing or returning garbage, producing an empty `xDiscourseItems` pool and starving theme extraction.
+
+**The X search tool name had a typo.** The tool was configured as `type: 'xsearch'` (no underscore). The xAI Responses API requires `type: 'x_search'` (underscore). Without the correct tool name, Grok wasn't filtering to tracked handles and wasn't applying the date range — returning noise or nothing.
+
+**Theme extraction was gated behind the wrong API key.** `extractLiveThemes()` had `if (!EXA_API_KEY || !OPENAI_API_KEY) return []`. The function uses Gemini for synthesis, not OpenAI — so with no OpenAI key set, the entire theme extraction short-circuited. Themes fell back to three generic fallbacks ("AI agents for business workflows", etc.), which drove searches too broad to find pre-consensus founders.
+
+**OpenAI dependency fully removed.** `extractLiveThemesAgentic` had been calling OpenAI's Chat Completions API with tool-calling for agentic theme verification. This was replaced with a Gemini `synthesize<>` call — the same pattern used everywhere else in the pipeline. All OpenAI imports, the `openai` client instance, and the `OPENAI_API_KEY` constant were removed. The pipeline now runs entirely on Gemini + Exa + Grok with no OpenAI dependency.
+
+**Post-scan dedup cache cleared.** The `seen.json` cache had accumulated URLs from the broken Grok era (noise posts from random accounts). These were blocking the same URLs from re-entering the pipeline even after the Grok fix, because the dedup window doesn't distinguish good from bad cache entries. Cache deleted; next scan started clean.
+
+---
+
+### 2026-05-25 — Scan pipeline hardened: date window accuracy and crash resistance
+
+**Grok X was ignoring `lastScanned` and always fetching the same 10-day window.** Each scan is supposed to fetch only content published after the previous scan, using `sinceDate` (derived from `lastScanned`, clamped to 3 days minimum). Grok X was ignoring this and recomputing its own hardcoded 10-day window locally — meaning it always pulled the same posts, adding no incremental signal after the first run. Now passes `sinceDate` from the pipeline into `grokXFromHandles` so the Grok date filter respects the same window as every other source.
+
+**Scans were silently crashing on long output.** The AI synthesis calls used to crash with a JSON parse error whenever Gemini generated more output than the token limit allowed — the response was simply cut off mid-JSON, and the crash would terminate the entire scan with zero results. Two fixes: (1) a repair function that finds the last complete item in the truncated response and closes the brackets correctly, so partial output is salvaged instead of discarded; (2) the synthesis layer now catches all JSON errors internally and returns an empty result rather than crashing the scan. The VC now sees fewer opportunities on a given scan instead of a crash with no output.
+
+**`extractLiveThemesAgentic` now runs even without an Exa key.** The function that extracts live investment themes was incorrectly gated behind `EXA_API_KEY` — meaning the entire theme extraction would short-circuit to `[]` if Exa wasn't configured. Exa is optional in this function (used only for pre-verification searches); the actual theme synthesis runs on Gemini. Fixed: only Gemini is required; each Exa call is individually skipped when no key is present.
+
+---
+
 ### 2026-05-25 — UX Stability: auto-scroll jumping and screen blanking fixed
 
 During active scanning and research evaluation, the web interface suffered from two major UX friction points: the page would aggressively force-scroll back to the top whenever new logs arrived, and the entire website would occasionally freeze or blank out. 
