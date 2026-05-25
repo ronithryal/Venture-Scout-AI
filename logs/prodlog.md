@@ -2,6 +2,27 @@
 
 ---
 
+### 2026-05-25 — Persistence layer hardened: SQLite replaces JSON files for reliability
+
+All analyst decisions and scan state now persist to SQLite with full ACID guarantees, replacing the previous hand-rolled JSON approach. This ensures analyst feedback (the notes driving the in-context learning loop) survives server restarts and disk failures without data loss.
+
+**What changed for analysts:**
+
+Nothing visually — the UI, endpoints, and data retrieval are identical. Decisions still show in the Shortlist and Pass List, notes still feed the calibration indicator, "Clear History" still works. The only difference is internal: data now writes to a single `.db` file with atomic transactions instead of six separate JSON files that could get out of sync.
+
+**Why this matters:**
+
+The feedback-steered scoring system depends on retaining every analyst decision and note. If a restart corrupts `decisions.json` or `outcomes.json`, the learning loop loses history and must start from scratch. SQLite's WAL (write-ahead logging) mode ensures that even if the server crashes mid-write, the database recovers to a consistent state automatically on restart. Notes are never lost.
+
+**Under the hood:**
+
+- `data/venture-scout.db` replaces six JSON files (decided.json, decisions.json, outcomes.json, seen.json, themes.json, opps.json)
+- All 21 decided opportunities, 3 feedback decisions, and 25 analyst outcomes migrated with zero data loss
+- Each write (e.g., marking a deal "Interested") now inserts a row into the decisions table immediately, guaranteeing persistence
+- Watchlist.json remains file-based (user-managed, separate semantics)
+
+---
+
 ### 2026-05-25 — Analyst feedback loop: fund taste learns in real-time from decisions
 
 The scoring engine now learns from every analyst decision, automatically calibrating future scores toward the fund's investment taste without changing the underlying rubric. This closes the feedback loop: the more notes an analyst adds to their Interested/Pass decisions, the more the scorer adapts to their patterns.

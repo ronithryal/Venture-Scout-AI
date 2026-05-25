@@ -2,6 +2,53 @@
 
 ---
 
+### 2026-05-25 — Persistence layer migration: JSON → SQLite with better-sqlite3
+
+Migrated all six persistence domains from hand-rolled JSON files to SQLite using `better-sqlite3`, achieving zero data loss while maintaining full API compatibility and enabling the feedback-steered scoring system to survive restarts.
+
+**Database Schema**
+
+Created 7 tables in `data/venture-scout.db`:
+- `decided_opps` — shortlist/pass archive (21 opportunities preserved)
+- `decisions` — feedback log with tier, score, outcome, note, timestamp (3 decisions + all future analyst actions)
+- `outcomes` — outcome decisions with timestamp and optional analyst note (25 outcomes)
+- `opportunities` — current deal flow + flagged queue (4 rows)
+- `seen_urls` — URL dedup set with TTL (1,120 entries, 3-day window)
+- `themes` — stored themes with pin/unpin state (121 themes)
+- `meta` — singleton key-value store for `lastScanned`
+
+Database initializes automatically on first load with `PRAGMA journal_mode = WAL` for safe concurrent reads during active scans.
+
+**Typed Database Layer (`src/db.ts`)**
+
+Exported 27 synchronous helper functions grouped by domain (getDecidedOpps, saveDecidedOpp, getDecisions, insertDecision, etc.). Each function enforces type safety at the TypeScript boundary and handles JSON serialization for blob columns (e.g., DealFlowOpportunity stored as JSON text, parsed on read).
+
+Functions operate synchronously (no async wrappers) — `better-sqlite3` blocks internally when needed, keeping call sites simple and preventing callback hell.
+
+**One-Time Migration Script (`scripts/migrate-to-sqlite.ts`)**
+
+`npm run migrate` reads all six JSON files in priority order (decided → decisions → outcomes → opportunities → themes → seen URLs) and writes atomically to SQLite. Applied TTL filter during seen URL migration (dropped expired entries). Backed up original JSON files to `.bak` files for disaster recovery.
+
+Result: 21 decided opps, 3 decisions (all with notes, feedback digest active), 25 outcomes, 1,120 seen URLs, 121 themes, 4 opportunities — **zero data loss**.
+
+**Server Integration**
+
+- `loadAll()` now loads from SQLite instead of reading six JSON files
+- `logDecision()` now calls `insertDecision()` directly for immediate DB persistence
+- `/api/outcomes` endpoint calls `saveDecidedOpp()` instead of bulk file write
+- DELETE `/api/decisions` calls `clearAllDecisions()`
+- `saveOutcomes()` now calls `saveAllOutcomes()` (clear + reinsert for consistency)
+- Added `/api/reload-config` POST endpoint to reload `thesis.yaml` and `scoring.yaml`
+- Process exit handlers call `closeDb()` for clean shutdown
+
+Removed constants: `SEEN_FILE`, `OUTCOMES_FILE`, `THEMES_FILE`, `OPPS_FILE`, `DECIDED_FILE`, `DECISIONS_FILE`. Only `WATCHLIST_FILE` remains (unchanged semantics, user-managed vs. scan-generated).
+
+**Zero Behavior Change**
+
+All in-memory state variables (outcomes, decisions, seenUrls, etc.) are populated from SQLite at startup and synced back on every change. The API surface, endpoint responses, and state shape are identical to the JSON version. The feedback-steered scoring system continues to work without modification — analyst notes are still injected into the LLM prompt, and the calibration indicator still reflects 3+ noted decisions.
+
+---
+
 ### 2026-05-25 — Feedback-steered scoring system: in-context self-improvement loop
 
 Implemented a closed-loop feedback mechanism that learns from analyst decisions to calibrate scoring toward the fund's investment taste. The system persists all analyst actions (Interested/Pass/Flag) with optional written notes, then injects past decisions back into the LLM prompt to steer future scoring.
