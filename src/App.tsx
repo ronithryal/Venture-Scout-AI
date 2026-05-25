@@ -534,7 +534,7 @@ function DealFlowTab({ opps, outcomes, outcomeNotes, onOutcome, onNote, onVerify
 }
 
 // ─── Tab: Shortlist / Pass List ─────────────────────────────────────────────────
-function OutcomeListTab({ allOpps, outcomes, outcomeNotes, outcomeTimes, targetOutcome, onOutcome, onNote, onVerify, verifyingIds }: {
+function OutcomeListTab({ allOpps, outcomes, outcomeNotes, outcomeTimes, targetOutcome, onOutcome, onNote, onVerify, verifyingIds, onClearDecisions }: {
   allOpps: DealFlowOpportunity[];
   outcomes: Record<string, OutcomeTier>;
   outcomeNotes: Record<string, string>;
@@ -544,6 +544,7 @@ function OutcomeListTab({ allOpps, outcomes, outcomeNotes, outcomeTimes, targetO
   onNote: (id: string, note: string) => void;
   onVerify: (id: string) => void;
   verifyingIds: Set<string>;
+  onClearDecisions?: () => void;
 }) {
   const listed = allOpps
     .filter(o => outcomes[o.id] === targetOutcome)
@@ -555,8 +556,23 @@ function OutcomeListTab({ allOpps, outcomes, outcomeNotes, outcomeTimes, targetO
       : <EmptyTab icon={Archive} msg="No startups passed on yet. Mark opportunities as Pass from the Deal Flow tab." />;
   }
 
+  const badgeColor = targetOutcome === 'interested' ? 'bg-emerald-950 border-emerald-800 text-emerald-300' : targetOutcome === 'pass' ? 'bg-red-950 border-red-800 text-red-300' : 'bg-amber-950 border-amber-800 text-amber-300';
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-zinc-500">
+          {listed.length} {targetOutcome === 'interested' ? 'shortlisted' : targetOutcome === 'pass' ? 'passed' : 'flagged'}
+        </div>
+        {onClearDecisions && (
+          <button
+            onClick={onClearDecisions}
+            className="px-2.5 py-1 rounded text-xs bg-zinc-900 border border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300 transition-colors"
+          >
+            Clear History
+          </button>
+        )}
+      </div>
       {listed.map((opp, i) => (
         <OpportunityCard
           key={opp.id}
@@ -1177,12 +1193,15 @@ export default function App() {
   const [state, setState] = useState<ScanState>(EMPTY_STATE);
   const [tab, setTab] = useState<Tab>('dealflow');
   const [verifyingIds, setVerifyingIds] = useState<Set<string>>(new Set());
+  const [calibrationStatus, setCalibrationStatus] = useState<{ calibrated: boolean; notedDecisions: number; totalDecisions: number } | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   const fetchState = useCallback(async () => {
     try {
       const res = await fetch('/api/state');
       if (res.ok) setState(await res.json());
+      const calRes = await fetch('/api/decisions/calibration-status');
+      if (calRes.ok) setCalibrationStatus(await calRes.json());
     } catch {}
   }, []);
 
@@ -1272,6 +1291,13 @@ export default function App() {
   const handleArchiveFlagged = async (id: string) => {
     await fetch(`/api/flagged/${id}`, { method: 'DELETE' });
     setState(prev => ({ ...prev, flagged: (prev.flagged || []).filter(o => o.id !== id) }));
+  };
+
+  const clearDecisions = async () => {
+    if (window.confirm('Clear all decision history? This cannot be undone.')) {
+      await fetch('/api/decisions', { method: 'DELETE' });
+      setCalibrationStatus({ calibrated: false, notedDecisions: 0, totalDecisions: 0 });
+    }
   };
 
   const addWatchlistRaw = async (raw: string): Promise<WatchlistEntry | null> => {
@@ -1369,6 +1395,18 @@ export default function App() {
                 <div className="flex items-center gap-1 text-xs text-zinc-600">
                   <Clock className="w-3.5 h-3.5" />
                   {timeAgo(state.lastScanned)}
+                </div>
+              )}
+              {calibrationStatus && (
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs border ${
+                  calibrationStatus.calibrated
+                    ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-400'
+                    : 'bg-amber-950/40 border-amber-900/60 text-amber-400'
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${calibrationStatus.calibrated ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  {calibrationStatus.calibrated
+                    ? `Calibrated (${calibrationStatus.notedDecisions} decisions)`
+                    : `Learning (${calibrationStatus.notedDecisions}/3 notes)`}
                 </div>
               )}
               <button
@@ -1491,6 +1529,7 @@ export default function App() {
             onNote={handleNote}
             onVerify={handleVerify}
             verifyingIds={verifyingIds}
+            onClearDecisions={clearDecisions}
           />
         )}
 
@@ -1506,6 +1545,7 @@ export default function App() {
             onNote={handleNote}
             onVerify={handleVerify}
             verifyingIds={verifyingIds}
+            onClearDecisions={clearDecisions}
           />
         )}
 

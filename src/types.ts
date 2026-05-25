@@ -25,6 +25,15 @@ export type SignalRole =
   | 'portfolio'
   | 'watchlist';
 
+export interface Decision {
+  company: string;
+  tier?: SignalTier;
+  score?: number;
+  decision: OutcomeTier;
+  note: string;
+  timestamp: string;
+}
+
 export interface WatchlistEntry {
   id: string;
   type: WatchlistType;

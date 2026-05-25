@@ -33,6 +33,7 @@ const OUTCOMES_FILE  = path.join(DATA_DIR, 'outcomes.json');
 const THEMES_FILE    = path.join(DATA_DIR, 'themes.json');
 const OPPS_FILE      = path.join(DATA_DIR, 'opps.json');
 const DECIDED_FILE   = path.join(DATA_DIR, 'decided.json');
+const DECISIONS_FILE = path.join(DATA_DIR, 'decisions.json');
 
 const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
@@ -131,6 +132,7 @@ let savedOpportunities: DealFlowOpportunity[]       = [];
 let savedFlagged:       DealFlowOpportunity[]       = [];
 let savedLastScanned:   string | null               = null;
 let decidedOpps: Map<string, DealFlowOpportunity>  = new Map();
+let decisions:         Array<{ company: string; tier?: SignalTier; score?: number; decision: OutcomeTier; note: string; timestamp: string }> = [];
 let thesisText  = '';
 let scoringText = '';
 
@@ -183,12 +185,14 @@ async function loadAll() {
     const raw = JSON.parse(await fs.readFile(DECIDED_FILE, 'utf-8'));
     decidedOpps = new Map(Object.entries(raw));
   } catch { decidedOpps = new Map(); }
+  try { decisions = JSON.parse(await fs.readFile(DECISIONS_FILE, 'utf-8')); } catch { decisions = []; }
   try { thesisText  = await fs.readFile(path.join(__dir, 'thesis.yaml'), 'utf-8'); }  catch {}
   try { scoringText = await fs.readFile(path.join(__dir, 'scoring.yaml'), 'utf-8'); } catch {}
 }
 
 const saveWatchlist   = () => fs.writeFile(WATCHLIST_FILE, JSON.stringify(watchlist, null, 2));
 const saveOutcomes    = () => fs.writeFile(OUTCOMES_FILE, JSON.stringify({ outcomes, outcomeTimes, outcomeNotes }, null, 2));
+const saveDecisions   = () => fs.writeFile(DECISIONS_FILE, JSON.stringify(decisions, null, 2));
 const saveDecidedOpps = () => fs.writeFile(DECIDED_FILE, JSON.stringify(Object.fromEntries(decidedOpps)));
 const saveThemesFile  = () => fs.writeFile(THEMES_FILE, JSON.stringify(storedThemes, null, 2));
 const saveOpps        = () => fs.writeFile(OPPS_FILE, JSON.stringify({
@@ -1376,12 +1380,31 @@ Return the final themes JSON based on all signals and pre-verification evidence 
 function buildFeedbackDigest(): string {
   const noted = Object.entries(outcomeNotes).filter(([, note]) => note.trim().length > 0);
   if (noted.length < 3) return '';
-  const lines = noted.slice(-20).map(([id, note]) => {
+  const lines = noted.slice(-10).map(([id, note]) => {
     const tier = outcomes[id];
     const label = tier === 'interested' ? 'INTERESTED' : tier === 'pass' ? 'PASS' : 'FLAGGED';
     return `- ${label}: "${id}" — "${note.trim()}"`;
   });
   return `\nVC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):\n${lines.join('\n')}\nApply: weight factors that drove past "interested" decisions higher; downgrade factors that repeatedly led to "pass".\n`;
+}
+
+// Logs a decision to the persistent decisions array with full metadata
+function logDecision(
+  companyId: string,
+  tier: SignalTier | undefined,
+  score: number | undefined,
+  decision: OutcomeTier,
+  note: string,
+) {
+  const entry = {
+    company: companyId,
+    tier,
+    score,
+    decision,
+    note: note.trim(),
+    timestamp: new Date().toISOString(),
+  };
+  decisions.push(entry);
 }
 
 // ─── Pipeline ──────────────────────────────────────────────────────────────────
@@ -2972,7 +2995,10 @@ app.post('/api/outcomes', async (req: Request, res: Response) => {
     await saveDecidedOpps();
   }
 
+  // Log decision with full metadata for feedback calibration
+  logDecision(id, opp?.score?.tier, opp?.score?.composite, outcome, note || '');
   await saveOutcomes();
+  await saveDecisions();
   res.json({ ok: true });
 
   // When a VC marks something "interested", run a deeper enrichment + re-score.
@@ -3097,6 +3123,24 @@ app.delete('/api/themes/:id', async (req: Request, res: Response) => {
   storedThemes = storedThemes.filter(t => t.id !== req.params.id);
   await saveThemesFile();
   res.json({ ok: true });
+});
+
+// Clear all decision history
+app.delete('/api/decisions', async (req: Request, res: Response) => {
+  decisions = [];
+  await saveDecisions();
+  res.json({ ok: true });
+});
+
+// Get calibration status for dashboard
+app.get('/api/decisions/calibration-status', (_req, res: Response) => {
+  const noted = Object.entries(outcomeNotes).filter(([, note]) => note.trim().length > 0);
+  const calibrated = noted.length >= 3;
+  res.json({
+    calibrated,
+    notedDecisions: noted.length,
+    totalDecisions: decisions.length,
+  });
 });
 
 // Vite dev / static
