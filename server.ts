@@ -11,6 +11,19 @@ import type {
   PartnerSummary, Investment, Theme, StoredTheme, Firm, WatchlistEntry, WatchlistType,
   OpportunityScore, OpportunityEnrichment, OutcomeTier, SignalTier,
 } from './src/types.js';
+import {
+  getDecidedOpps, saveDecidedOpp, deleteDecidedOpp,
+  getDecisions, insertDecision, clearAllDecisions,
+  getOutcomes, saveOutcome, deleteOutcome, saveAllOutcomes,
+  getOpportunities, getFlaggedOpps, getLastScanned, saveOpportunities,
+  getSeenUrls, addSeenUrl, pruneSeenUrls,
+  getStoredThemes, saveThemes,
+  closeDb,
+} from './src/db.js';
+import { repairTruncatedJson, synthesize, extractLiveThemes, mergeIncomingThemes, buildFeedbackDigest } from './src/synthesis.js';
+import { DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, PartnerTier, PartnerProgram, PartnerRosterEntry } from './src/partners.js';
+import { exaSearch, pickSnippet, exaContents, SOURCE_AGGREGATOR_HOSTS, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS } from './src/signals.js';
+import { checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS } from './src/credibility.js';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
@@ -28,12 +41,6 @@ const isDev          = process.env.NODE_ENV !== 'production';
 
 const DATA_DIR       = path.join(__dir, 'data');
 const WATCHLIST_FILE = path.join(DATA_DIR, 'watchlist.json');
-const SEEN_FILE      = path.join(DATA_DIR, 'seen.json');
-const OUTCOMES_FILE  = path.join(DATA_DIR, 'outcomes.json');
-const THEMES_FILE    = path.join(DATA_DIR, 'themes.json');
-const OPPS_FILE      = path.join(DATA_DIR, 'opps.json');
-const DECIDED_FILE   = path.join(DATA_DIR, 'decided.json');
-const DECISIONS_FILE = path.join(DATA_DIR, 'decisions.json');
 
 const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
@@ -143,63 +150,34 @@ async function ensureDataDir() {
 async function loadAll() {
   await ensureDataDir();
   try { watchlist   = JSON.parse(await fs.readFile(WATCHLIST_FILE, 'utf-8')); }  catch { watchlist = []; }
-  try {
-    const d = JSON.parse(await fs.readFile(SEEN_FILE, 'utf-8'));
-    const cutoff = Date.now() - SEEN_TTL_MS;
-    seenUrls = new Set();
-    seenUrlTimes = new Map();
-    if (Array.isArray(d.entries)) {
-      // New format: { entries: { url, ts }[] } — prune entries older than TTL
-      for (const e of d.entries) {
-        if (e.ts && e.ts > cutoff) {
-          seenUrls.add(e.url);
-          seenUrlTimes.set(e.url, e.ts);
-        }
-      }
-    } else if (Array.isArray(d.urls)) {
-      // Old flat format: treat all existing URLs as having ts=0 → already expired → don't load
-      // This clears the bloated legacy seen set on first boot of new format.
-    }
-  } catch { seenUrls = new Set(); seenUrlTimes = new Map(); }
-  try {
-    const raw = JSON.parse(await fs.readFile(OUTCOMES_FILE, 'utf-8'));
-    // Support both old flat format {id: outcome} and new {outcomes, outcomeTimes}
-    if (raw.outcomes) {
-      outcomes      = raw.outcomes;
-      outcomeTimes  = raw.outcomeTimes || {};
-      outcomeNotes  = raw.outcomeNotes || {};
-    } else {
-      outcomes      = raw;
-      outcomeTimes  = {};
-      outcomeNotes  = {};
-    }
-  } catch { outcomes = {}; outcomeTimes = {}; outcomeNotes = {}; }
-  try { storedThemes = JSON.parse(await fs.readFile(THEMES_FILE, 'utf-8')); } catch { storedThemes = []; }
-  try {
-    const d = JSON.parse(await fs.readFile(OPPS_FILE, 'utf-8'));
-    savedOpportunities = d.opportunities || [];
-    savedFlagged       = d.flagged       || [];
-    savedLastScanned   = d.lastScanned   || null;
-  } catch { savedOpportunities = []; savedFlagged = []; savedLastScanned = null; }
-  try {
-    const raw = JSON.parse(await fs.readFile(DECIDED_FILE, 'utf-8'));
-    decidedOpps = new Map(Object.entries(raw));
-  } catch { decidedOpps = new Map(); }
-  try { decisions = JSON.parse(await fs.readFile(DECISIONS_FILE, 'utf-8')); } catch { decisions = []; }
+
+  // Load from SQLite database
+  const seenData = getSeenUrls(SEEN_TTL_MS);
+  seenUrls = seenData.seenUrls;
+  seenUrlTimes = seenData.seenUrlTimes;
+
+  const outcomesData = getOutcomes();
+  outcomes = outcomesData.outcomes as Record<string, OutcomeTier>;
+  outcomeTimes = outcomesData.outcomeTimes;
+  outcomeNotes = outcomesData.outcomeNotes;
+
+  storedThemes = getStoredThemes();
+
+  savedOpportunities = getOpportunities();
+  savedFlagged = getFlaggedOpps();
+  savedLastScanned = getLastScanned();
+
+  decidedOpps = getDecidedOpps();
+  decisions = getDecisions() as Array<{ company: string; tier?: SignalTier; score?: number; decision: OutcomeTier; note: string; timestamp: string }>;
+
   try { thesisText  = await fs.readFile(path.join(__dir, 'thesis.yaml'), 'utf-8'); }  catch {}
   try { scoringText = await fs.readFile(path.join(__dir, 'scoring.yaml'), 'utf-8'); } catch {}
 }
 
 const saveWatchlist   = () => fs.writeFile(WATCHLIST_FILE, JSON.stringify(watchlist, null, 2));
-const saveOutcomes    = () => fs.writeFile(OUTCOMES_FILE, JSON.stringify({ outcomes, outcomeTimes, outcomeNotes }, null, 2));
-const saveDecisions   = () => fs.writeFile(DECISIONS_FILE, JSON.stringify(decisions, null, 2));
-const saveDecidedOpps = () => fs.writeFile(DECIDED_FILE, JSON.stringify(Object.fromEntries(decidedOpps)));
-const saveThemesFile  = () => fs.writeFile(THEMES_FILE, JSON.stringify(storedThemes, null, 2));
-const saveOpps        = () => fs.writeFile(OPPS_FILE, JSON.stringify({
-  opportunities: state.opportunities,
-  flagged:       state.flagged,
-  lastScanned:   state.lastScanned,
-}, null, 2));
+const saveOutcomes    = () => saveAllOutcomes({ outcomes, outcomeTimes, outcomeNotes });
+const saveThemesFile  = () => saveThemes(storedThemes);
+const saveOpps        = () => saveOpportunities(state.opportunities, state.flagged, state.lastScanned);
 
 // Strip trailing slashes so URL variants match in dedup sets
 const normalizeUrl = (u: string) => u.replace(/\/+$/, '');
@@ -259,7 +237,7 @@ async function saveSeenUrls() {
     .slice(-10000);
   // Rebuild seenUrls from the pruned entries so the in-memory set stays consistent
   seenUrls = new Set(entries.map(e => e.url));
-  await fs.writeFile(SEEN_FILE, JSON.stringify({ entries }));
+  pruneSeenUrls(SEEN_TTL_MS);
 }
 
 await loadAll();
@@ -1405,6 +1383,7 @@ function logDecision(
     timestamp: new Date().toISOString(),
   };
   decisions.push(entry);
+  insertDecision(entry);
 }
 
 // ─── Pipeline ──────────────────────────────────────────────────────────────────
@@ -2992,13 +2971,12 @@ app.post('/api/outcomes', async (req: Request, res: Response) => {
   if (opp) {
     decidedOpps.set(id, opp);
     state.decidedOpps = Array.from(decidedOpps.values());
-    await saveDecidedOpps();
+    saveDecidedOpp(opp, outcome, outcomeNotes[id]);
   }
 
   // Log decision with full metadata for feedback calibration
   logDecision(id, opp?.score?.tier, opp?.score?.composite, outcome, note || '');
   await saveOutcomes();
-  await saveDecisions();
   res.json({ ok: true });
 
   // When a VC marks something "interested", run a deeper enrichment + re-score.
@@ -3128,7 +3106,7 @@ app.delete('/api/themes/:id', async (req: Request, res: Response) => {
 // Clear all decision history
 app.delete('/api/decisions', async (req: Request, res: Response) => {
   decisions = [];
-  await saveDecisions();
+  clearAllDecisions();
   res.json({ ok: true });
 });
 
@@ -3141,6 +3119,17 @@ app.get('/api/decisions/calibration-status', (_req, res: Response) => {
     notedDecisions: noted.length,
     totalDecisions: decisions.length,
   });
+});
+
+// Reload thesis and scoring configuration
+app.post('/api/reload-config', async (_req, res) => {
+  try {
+    thesisText  = await fs.readFile(path.join(__dir, 'thesis.yaml'), 'utf-8');
+    scoringText = await fs.readFile(path.join(__dir, 'scoring.yaml'), 'utf-8');
+    res.json({ ok: true, message: 'thesis.yaml and scoring.yaml reloaded' });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err?.message || 'Failed to reload config' });
+  }
 });
 
 // Vite dev / static
@@ -3178,5 +3167,5 @@ const server = app.listen(PORT, () => {
   startAutoScan();
 });
 
-process.on('SIGINT',  () => { server.close(); process.exit(0); });
-process.on('SIGTERM', () => { server.close(); process.exit(0); });
+process.on('SIGINT',  () => { closeDb(); server.close(); process.exit(0); });
+process.on('SIGTERM', () => { closeDb(); server.close(); process.exit(0); });
