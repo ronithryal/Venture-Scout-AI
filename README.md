@@ -36,8 +36,10 @@ Each company receives a `SignalTier`: **CRITICAL**, **HIGH**, **MEDIUM**, or **L
 **Stage 5 — Enrichment**
 CRITICAL and HIGH companies are automatically enriched: GitHub star counts, recent push dates, infrastructure signals, and HN thread engagement are pulled and attached to the opportunity card.
 
-**Stage 6 — Credibility Check**
-Active credibility verification runs on top-tier signals: domain age check, named claims search, review platform hits (Product Hunt, G2), team LinkedIn verifiability, and homepage funding language scrape. This catches hallucinated or inflated companies before they reach the analyst's inbox.
+**Stage 6 — Credibility Check & Hermes Agentic Conviction**
+Active credibility verification runs on top-tier signals: domain age check, named claims search, review platform hits (Product Hunt, G2), team LinkedIn verifiability, and homepage funding language scrape.
+
+In parallel, **Hermes** (an agentic research agent) conducts deep conviction verification on CRITICAL and HIGH opportunities. It autonomously searches the web to verify product existence, flag undisclosed equity funding, and surface supporting evidence. Hermes returns a conviction level (strong/moderate/weak/pass) that can downgrade opportunities if signals are thin or funding is undisclosed. This layer catches hallucinated or inflated companies before they reach the analyst's inbox.
 
 ---
 
@@ -56,16 +58,36 @@ The model uses this context to recalibrate scoring for future companies — effe
 
 ---
 
+## Hermes: Agentic Conviction Verification
+
+Hermes is an optional but powerful layer that catches deals requiring deeper scrutiny. It's an agentic research agent with access to live web search (via Exa) that:
+
+- **Autonomously verifies claims**: Can run up to 3 targeted searches per opportunity to confirm product existence, find supporting press, or validate founding signals
+- **Enforces hard rules**: Immediately flags any opportunity with undisclosed equity funding (VC, angel, convertible notes) as "pass" — non-negotiable red line
+- **Returns conviction levels**:
+  - **strong**: All signals verified, live product, traction evident
+  - **moderate**: Good signals but some gaps in corroboration
+  - **weak**: Thin signals or inconsistent evidence → downgrades opportunity one tier
+  - **pass**: Undisclosed funding or <2 corroborating signals → downgrades to LOW
+
+The conviction result is appended to the opportunity's thesis takeaway so analysts see not just what Hermes found, but why. Hermes runs in parallel with passive credibility checks (domain age, LinkedIn, Product Hunt) — they verify different attack surfaces.
+
+Hermes is optional (requires `HERMES_API_KEY`). Without it, the system falls back to Gemini-based synthesis and passive credibility checks — still robust, but without live-search conviction verification.
+
+---
+
 ## Model Stack
 
 | Stage | Model | Role |
 |---|---|---|
 | Theme Extraction | **Gemini 3.5 Flash** | Structured JSON extraction from VC social content |
 | Signal Retrieval | **Exa Neural Search** | Semantic web search with domain-level targeting |
-| Opportunity Scoring | **Gemini 3.5 Flash** | Synthesis 1–5: extraction, scoring, credibility, enrichment |
-| Theme Synthesis | **Gemini 3.5 Flash** | Synthesis 6: investment theme clustering |
+| Opportunity Scoring | **Gemini 3.5 Flash** | Synthesis 1–5: extraction, scoring, enrichment |
+| Credibility Verification | **Hermes-3-Llama-3.1-70B** (optional) | Agentic research: verifies claims, flags undisclosed funding, returns conviction assessment |
+| Fallback Synthesis | **Gemini 3.5 Flash** | Structured verification when Hermes unavailable; active credibility checks (domain age, LinkedIn, Product Hunt) |
+| Theme Synthesis | **Gemini 3.5 Flash** | Investment theme clustering and multi-firm signal correlation |
 
-All synthesis passes use JSON-mode output with automatic truncation repair — broken responses are healed before parsing rather than discarded.
+All synthesis passes use JSON-mode output with automatic truncation repair — broken responses are healed before parsing rather than discarded. Hermes (via NVIDIA Integrated API) is optional; if `HERMES_API_KEY` is absent, credibility checks default to passive verification only.
 
 ---
 
@@ -108,6 +130,45 @@ Each quarter, run a retrospective: which themes generated the most Interested de
 ### 8. CRM Sync
 Push every Interested decision directly into Attio, Affinity, or whatever CRM the fund uses — pre-populated with company name, description, source URL, score, and thesis notes. Eliminates double-entry and keeps the pipeline current without analyst effort.
 
+### 9. Autonomous Hermes Sourcing Layer
+Upgrade Hermes from a verification-only gate to an autonomous sourcing agent. Instead of waiting for Gemini to surface opportunities, let Hermes proactively hunt for companies matching the fund's investment thesis. Give it:
+- Recent portfolio company announcements and founder moves as search vectors
+- Competitive landscaping queries ("who's building in open-source infra like our portfolio co X?")
+- Founder signal monitoring (when a founder with prior exits moves, Hermes surfaces what they're building)
+- Weekly autonomously-sourced deal list with conviction scores, requiring zero analyst input to trigger
+
+This turns the system from reactive (waiting for signals to bubble up) to proactive (Hermes hunting for relevant founders and companies directly).
+
+### 10. WhatsApp + Email Outreach Pipeline
+Integrate WhatsApp Business API and email (SendGrid/Resend) to enable one-click warm outreach:
+- When an analyst marks a company Interested, generate a personalized cold email or WhatsApp message template (using Hermes or Gemini to pull from LinkedIn, Twitter, recent press)
+- If a mutual connection exists (from founder intelligence enrichment), use that in the outreach ("I noticed you worked with X, who I know well...")
+- Track engagement: clicks, replies, meeting bookings — feed back into the feedback loop so the system learns which companies actually convert to meetings
+- Scheduled batch sends: every Friday at 2pm, send queued outreach and include a digest of what got replies
+
+### 11. Founder & Company Network Graph
+Build a knowledge graph of:
+- **Founder nodes**: linked by prior companies, co-founder relationships, shared advisors, mutual investors, conference attendance
+- **Company nodes**: linked by investors, customers, employees, technology stacks, market segments
+- **Fund nodes**: portfolio companies, LPs, partner firms, signal sources
+
+Query patterns that unlock value:
+- "Show me all founders 2 degrees away from our portfolio founders"
+- "Which companies share 3+ employees with a company we passed on 6 months ago?"
+- "Map the investor network for all companies scoring HIGH — where's the overlap?"
+- "Visualize emerging clusters: which founders/companies are starting to signal the same thesis?"
+
+This transforms isolated company signals into relational intelligence — you can see clusters, founder migration patterns, and second-order effects (e.g. a team of ex-Stripe people who all moved to different startups signals something).
+
+### 12. Real-time Signal Webhooks
+Set up webhooks for high-velocity signals:
+- GitHub API: when a watched repository hits a star-count milestone or sees a surge in commits, notify immediately
+- Hacker News API: when a founder's name or company appears on the front page, page the analyst
+- Twitter Streaming API: new post from watched founder or company handle triggers a Hermes conviction check and Slack alert
+- LinkedIn: when a key team member joins or leaves a HIGH/CRITICAL company, surface it instantly
+
+Don't batch these — real-time monitoring means catching moments when founders are signaling major moves or launches.
+
 ---
 
 ## Run Locally
@@ -123,8 +184,9 @@ The `predev` script automatically clears port 3002 before starting. Configure AP
 ```
 EXA_API_KEY=
 GEMINI_API_KEY=
-OPENAI_API_KEY=
 GITHUB_TOKEN=        # optional — raises GitHub API rate limits
+HERMES_API_KEY=      # optional — agentic conviction verification (NVIDIA Integrated API)
+HERMES_BASE_URL=     # optional — defaults to https://integrate.api.nvidia.com/v1
 ```
 
 Data is persisted locally in `basic0j/data/` (gitignored). The system starts an auto-scan 15 seconds after boot and rescans every 3 hours.
