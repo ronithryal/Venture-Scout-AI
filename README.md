@@ -1,6 +1,6 @@
 # Venture Scout AI
 
-**Live:** [Venture Scout on Vercel](#) _(deploying...)_
+**Live:** [Venture Scout on Railway](https://empowering-heart-production.up.railway.app)
 
 ## What This Is
 
