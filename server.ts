@@ -1,10 +1,13 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.env') });
+
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import dotenv from 'dotenv';
 import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import type {
   RawSignal, SignalRole, ScanState, DealFlowOpportunity, FounderTheme,
@@ -25,8 +28,6 @@ import { DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, PartnerTier
 import { exaSearch, pickSnippet, exaContents, SOURCE_AGGREGATOR_HOSTS, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS, getTrackedXHandles, grokXFromHandles, isPressRelease, isVcToolRepo } from './src/signals.js';
 import { checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS } from './src/credibility.js';
 import { conductHermesResearch, applyHermesConviction } from './src/hermes.js';
-
-dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const EXA_API_KEY    = process.env.EXA_API_KEY || '';
@@ -220,14 +221,49 @@ await loadAll();
 // ─── Partner roster, themes, and signal constants imported from modules ──────────────────────
 
 
+// ─── Restore untouched companies from previous scans ────────────────────────
+// Companies with no outcome decision (interested/pass/flagged) should remain visible
+// even if not found in current scan. Collect from all sources: opportunities, flagged, decidedOpps.
+function restoreUntouchedCompanies(
+  opps: DealFlowOpportunity[],
+  flagged: DealFlowOpportunity[],
+  decided: Map<string, DealFlowOpportunity>,
+  outcomesRecord: Record<string, OutcomeTier>
+): DealFlowOpportunity[] {
+  const seen = new Set<string>();
+  const result: DealFlowOpportunity[] = [];
+
+  // Collect all unique companies with no outcome, preserving them in deal flow
+  for (const opp of [...opps, ...flagged, ...Array.from(decided.values())]) {
+    if (!seen.has(opp.id) && !outcomesRecord[opp.id]) {
+      result.push(opp);
+      seen.add(opp.id);
+    }
+  }
+
+  return result;
+}
+
 // ─── State ─────────────────────────────────────────────────────────────────────
+// Restore untouched companies to ensure they appear in deal flow
+const restoredUntouchedOpps = restoreUntouchedCompanies(
+  savedOpportunities, savedFlagged, decidedOpps, outcomes
+);
+const untouchedNotInOpps = restoredUntouchedOpps.filter(
+  o => !savedOpportunities.find(s => s.id === o.id)
+);
+
 let state: ScanState = {
   lastScanned: savedLastScanned, isScanning: false, progress: [],
-  liveThemes: [], opportunities: savedOpportunities, flagged: savedFlagged,
+  liveThemes: [], opportunities: [...savedOpportunities, ...untouchedNotInOpps], flagged: savedFlagged,
   decidedOpps: Array.from(decidedOpps.values()),
   founderThemes: [], partnerActivity: [], investments: [],
   themes: [], storedThemes, signalCount: 0, watchlist, outcomes, outcomeTimes, outcomeNotes,
 };
+
+if (untouchedNotInOpps.length > 0) {
+  console.log(`[init] Restored ${untouchedNotInOpps.length} undecided companies to deal flow`);
+}
 
 // ─── SSE ───────────────────────────────────────────────────────────────────────
 let sseClients: Response[] = [];
@@ -363,6 +399,10 @@ async function runScan() {
   state.isScanning = true;
   state.progress   = [];
   state.error      = undefined;
+
+  // Preserve companies with no outcome (not interested/pass/flagged) before scan
+  const untouchedOpps = state.opportunities.filter(opp => !outcomes[opp.id]);
+  log(`Preserving ${untouchedOpps.length} undecided companies for next scan...`);
 
   const signals: RawSignal[] = [];
   const now    = new Date().toISOString();
@@ -1473,6 +1513,18 @@ AUTO-ASSIGN LOW if no product in market is evidenced — decks, plans, prototype
       ...newFlagged.map(o => ({ ...o, flaggedAt: now } as any)),
       ...existingFlagged.filter(e => !newFlagged.some(n => n.id === e.id)),
     ];
+
+    // ── Merge back untouched companies from previous scans ───────────────────────
+    // Any company that had NO outcome (interested/pass/flagged) is preserved.
+    // This prevents companies from disappearing when they're not in the current scan
+    // but user hasn't made a decision on them yet.
+    const newOppIds = new Set(state.opportunities.map(o => o.id));
+    const untouchedToRestore = untouchedOpps.filter(o => !newOppIds.has(o.id));
+    if (untouchedToRestore.length > 0) {
+      state.opportunities = [...state.opportunities, ...untouchedToRestore];
+      log(`  → restored ${untouchedToRestore.length} undecided companies from previous scans`);
+    }
+
     log(`  → ${state.opportunities.length} opportunities · ${state.flagged.length} flagged (unverifiable)`);
 
     // ── Synthesis 3: Founder Themes from builder discourse (X, Reddit, LinkedIn) ────
