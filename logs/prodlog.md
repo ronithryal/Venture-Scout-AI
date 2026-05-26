@@ -2,6 +2,29 @@
 
 ---
 
+### 2026-05-25 — Signal pipeline hardening: Grok X integration, single-pass Hermes verification, module cleanup
+
+Three pipeline improvements that strengthen deal discovery without changing analyst workflow:
+
+**Grok X (tracked handles) now flows into deal opportunities** 
+- Posts from your followed partners and watchlist accounts now surface as primary deal signals, not just theme context
+- Handle-targeted searches ensure signal quality (no algorithm spam, only intentional founder posts)
+- Combined with existing Exa builder discourse, expands early-stage founder visibility
+
+**Hermes conviction checks simplified and accelerated**
+- Switched from multi-iteration API loop to single Exa research call + structured conviction assessment
+- Faster feedback for CRITICAL/HIGH opportunities (single round-trip to Hermes instead of polling)
+- Same conviction output: strong/moderate/weak/pass with reasoning and risk flags
+
+**Architecture cleaned: zero duplicate code**
+- Removed 240+ lines of duplicate function definitions from server.ts
+- Six modules now live as the single source of truth (synthesis, partners, signals, credibility, hermes, persistence)
+- Future bug fixes touch one place instead of six; new features are safer to add
+
+**What changed for analysts:** Your workflow is unchanged. Grok results are now broader (capturing tracked handle posts as opportunities, not just themes). Hermes verdicts on high-scoring deals arrive slightly faster. Everything else works the same.
+
+---
+
 ### 2026-05-25 — Internal refactoring: six modules created, zero product behavior change
 
 The internal architecture was reorganized to eliminate code duplication and improve maintainability. This work is invisible to users — the product behavior, UI, endpoints, and data handling remain identical. The motivation is engineering quality: as the feature set grows, shared code blocks become harder to modify correctly and easier to break inadvertently. The module structure makes future features safer to add.

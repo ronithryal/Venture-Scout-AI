@@ -2,6 +2,41 @@
 
 ---
 
+### 2026-05-25 — Audit & fixes: Dual-write elimination, Grok integration, Hermes optimization, module split finalization
+
+Completed comprehensive audit and fixed all four identified issues in the server pipeline:
+
+**Issue 1: Dual-write conflict on decisions** ✓
+- Verified all decision writes flow exclusively through `insertDecision()` into SQLite
+- `loadAll()` seeds in-memory decisions array from `db.getDecisions()`
+- No remaining `saveDecisions()` or JSON file writes for decisions
+
+**Issue 2: Pipeline fixes from prior session** ✓
+- **2a**: Confirmed `isConsensus()` and `isNoise()` called together in signal filtering chain
+- **2b**: Grok X results now pushed into main deal flow signal array (type='watchlist') in addition to Founder Themes extraction
+- **2c**: Refactored `conductHermesResearch()` from 3-iteration tool-calling loop to single Exa call with structured synthesis, moved to `src/hermes.ts`
+
+**Issue 3: Calibration status endpoint** ✓
+- Route `/api/decisions/calibration-status` confirmed operational
+- Frontend calls correct endpoint in App.tsx
+- No duplicate or mismatched handlers
+
+**Issue 4: Module split finalization** ✓
+- Enabled all six module imports in server.ts with named exports
+- Removed all 240+ lines of duplicate function definitions from server.ts
+- Fixed `mergeIncomingThemes()` call signature (3 args: incoming, storedThemes, now)
+- Removed non-existent `extractLiveThemesAgentic` (simplified to static `extractLiveThemes`)
+- **TypeScript clean**: `npx tsc --noEmit` passes zero errors
+
+**Module imports now live:**
+- `src/synthesis.js`: extractLiveThemes, mergeIncomingThemes
+- `src/partners.js`: DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, types
+- `src/signals.js`: exaSearch, pickSnippet, exaContents, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS, getTrackedXHandles, grokXFromHandles, isPressRelease, isVcToolRepo
+- `src/credibility.js`: checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS
+- `src/hermes.js`: conductHermesResearch, applyHermesConviction
+
+---
+
 ### 2026-05-25 — Module architecture phase 1: Six modules created, imports prepared, TypeScript clean
 
 Extracted all duplicated code from server.ts into six modular files, with clean separation of concerns and no circular dependencies. Module imports are prepared and ready; duplicate definitions remain commented out to support a gradual cleanup in future work.
