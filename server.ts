@@ -39,7 +39,7 @@ const HERMES_API_KEY  = process.env.HERMES_API_KEY || '';
 const HERMES_BASE_URL = process.env.HERMES_BASE_URL || 'https://integrate.api.nvidia.com/v1';
 const HERMES_MODEL    = 'NousResearch/Hermes-3-Llama-3.1-70B-FP8';
 const GEMINI_MODEL    = 'gemini-3.5-flash';
-const PORT            = 3002;   // 3001 reserved for scout/
+const PORT            = parseInt(process.env.PORT || '3002', 10);
 const isDev          = process.env.NODE_ENV !== 'production';
 
 const DATA_DIR       = path.join(__dir, 'data');

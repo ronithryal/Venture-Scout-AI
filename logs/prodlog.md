@@ -2,6 +2,198 @@
 
 ---
 
+### 2026-05-25 — Self-Improving Agent Stack: four-phase learning architecture (outcomes → skills → models → orchestration)
+
+The system is being architected as a four-phase learning stack where each layer is a prerequisite for the next. The foundation is outcome tracking; the capstone is multi-agent orchestration. Here's the flow:
+
+**Phase 1: Outcome Tracking (Foundation)**
+
+*Current state:* Past analyst decisions (INTERESTED/PASS/FLAGGED) are logged with optional notes and feed back as LLM context for scoring. But there's no feedback from reality — we don't know if decisions were *right*.
+
+*Future state:* Track actual outcomes. Did INTERESTED deals close fundraises? Did PASS deals raise elsewhere? Did flagged companies actually have problems we predicted? Measure true signal predictiveness — not "founder pedigree correlated with INTERESTED decisions" but "founder pedigree *predicted closed deals*." This data is the seed for everything downstream.
+
+*Why this phase is critical:* Without outcome data, all downstream learning (skills, user models, multi-agent research) is based on decision history, not reality. Skill documents about "PhD founders are good" are worthless if you don't know whether those founders actually closed. You need the ground truth.
+
+**Phase 2: Skill Documents (Learned Wisdom)**
+
+*Current state:* System has no persistent learning. Decision #101 doesn't benefit from insights in decisions #1-100.
+
+*Future state:* After every decision, Hermes reflection pass asks: "What signals *actually* predicted this outcome?" Reflect on founder profile, risk flags, traction signals, and what mattered. Store as **skill documents** — reusable knowledge artifacts, not just decision summaries. A skill document reads like: "Deep tech + PhD founder + named institutional pilots + SBIR Stage II = 85% close rate. Avoid if: founder went quiet after initial traction or team departed."
+
+On future deals, query the skill library. Similar company (same sector, founder type, traction pattern) → load relevant skills (top 3 by match strength) → adapt conviction assessment using learned patterns. The system gets compound wisdom: decision #101 learns from the collective experience of 5-10 relevant past decisions, not from training knowledge or generic rubric.
+
+*Why this phase matters:* After 100 decisions, a static rubric-based system treats decision #101 like decision #1. A skill-based system treats it like a variant of its 10 most similar past decisions. That's the difference between "contextually aware" and "genuinely learning."
+
+**Phase 3: Deep User Modeling (Personalization)**
+
+*Current state:* Feedback digest (last 10 decisions) provides some signal about what this fund values. But it's shallow — shows decisions, not principles.
+
+*Future state:* Extract this fund's specific taste from 30+ outcomes. Not "founder pedigree is good" (generic) but "your fund passes on serial entrepreneurs who haven't exited, but is bullish on first-time founders from specific universities." Not "traction matters" (obvious) but "you accept $0 MRR for deep tech pilots with named institutions, but pass on SaaS with <$1k MRR."
+
+Build a persistent **fund profile** capturing:
+- Which founder profiles generate your highest close rates?
+- Which sectors do you *actually* fund vs. claim to fund?
+- What's your true risk tolerance (observed, not stated)?
+- How does your thesis drift (Q1 AI infra, Q2 vertical SaaS, Q3 deep tech)?
+- Which risk flags do you weight heavily? (Domain age? Founder exits? Revenue growth rate?)
+
+This model shapes how all signals are ranked and conviction is assessed. It's personalization at the judgment level — not just "show the founder the deals they like" but "understand why they decide the way they do and adapt your reasoning to match."
+
+*Why this phase matters:* Pre-seed investing is idiosyncratic. One fund's PASS is another fund's CRITICAL. User modeling captures that idiosyncrasy without retraining. It's the difference between "calibrated LLM" and "truly personal agent."
+
+**Phase 4: Multi-Agent Orchestration (Research Richness)**
+
+*Current state:* One `conductHermesResearch()` call per company. Single Exa search + structured synthesis. Bounded by what one agent can find in one pass.
+
+*Future state:* Rather than one call, spawn a **master orchestrator** that launches 5 domain-specific sub-agents in parallel, each searching different signal domains:
+
+1. **Portfolio adjacency agent**: Founder worked at your portfolio co → who else from that company is building? Are they all moving into the same sector? (network velocity)
+2. **Founder deep-dive agent**: GitHub contribution history (not just recent repo). Conference talks. Published writing. Prior exits and *why* they exited. (founder intelligence beyond traction)
+3. **Technical velocity agent**: Commit patterns, PR cadence, contributor churn, language shifts over time. (execution signal richer than "pushed yesterday")
+4. **IP/Patent activity agent**: USPTO filings, academic patents, small-entity patent activity in tracked sectors. (non-self-promoted deep tech discovery)
+5. **Team movement monitor**: Founder departures, team member changes, new hires in key roles. (velocity and distress signals)
+
+Master orchestrator merges findings asynchronously, ranks signals by predictive strength (using outcomes from Phase 1), returns conviction assessment that's richer than any single agent.
+
+*Why this phase matters:* Single-agent research finds what one LLM can search in one call. Multi-agent finds **cross-domain patterns** that predict outcomes better than isolated signals. A founder moving from X to Y + team departure + new patent filing = different signal than each independently. These patterns emerge from parallel search you can't do in a single call.
+
+**Prerequisite ordering is non-negotiable:**
+
+- Phase 1 is the foundation. Without outcomes, you can't write predictive skills (Phase 2) or build accurate user models (Phase 3). Skills and models trained on decision history are worthless.
+- Phase 2 (skills) unblocks Phase 3 (modeling). You extract user taste from outcome data; you write skills from outcome data. Both need ground truth.
+- Phase 3 and 4 run in parallel post-Phase-2. User model weights signal ranking; multi-agent orchestration finds the signals. Together they surface what matters *to this fund*.
+
+**Current blocker:** Phase 1 is not yet implemented. The roadmap shows it as priority alongside scheduled caching + batching. Once outcomes are tracked, Phases 2-4 unlock rapidly because the data is there.
+
+---
+
+### 2026-05-25 — Roadmap restructured: self-improvement and pipeline optimization prioritized
+
+The "How I'd Extend This" section of the README was restructured to reflect a more realistic and ambitious continuation strategy. Three major shifts:
+
+**1. Title: "How I Would Continue Building This"**
+
+The framing resets the conversation: given what we know about the product, the fund's actual investment taste, and the pipeline's limitations, what are the highest-leverage next steps? This prepares builders and stakeholders for prioritization conversations rather than roadmap exhaustion.
+
+**2. Format: numbered list → bulleted list with integrated descriptions**
+
+Numbered lists create false sequencing (implying 1 must ship before 2). Bulleted format with integrated detail makes each item self-contained and independently valuable. A reader can now understand each capability in isolation rather than as steps in a locked sequence.
+
+**3. Two categories elevated to North Star status:**
+
+Two major work streams moved conceptually from "nice-to-have" features to foundational infrastructure that unblocks everything else:
+
+**Self-Improving Agent Stack (consolidated from Outcome Calibration + Hermes Evolution)** — Originally framed as two separate items ("Outcome-Driven Algorithmic Calibration" and "Autonomous Hermes Sourcing Layer"), these have been consolidated into a single four-phase learning architecture. The foundation is **outcome tracking** (did INTERESTED deals close? did PASS deals raise elsewhere?) — without this ground truth, all downstream learning collapses. Once outcomes are tracked, Phase 2 builds **skill documents** (reusable wisdom from each decision), Phase 3 extracts **fund taste models** (this fund's actual vs. claimed priorities), and Phase 4 launches **multi-agent orchestration** (5 parallel research agents hunting cross-domain patterns). This moves from "context-aware LLM" to "genuinely self-improving agent." The product maturity gap is structural: without Phase 1, the feedback loop plateaus after 10-15 decisions. With the full stack, the system compounds knowledge indefinitely and personalizes to fund-specific judgment patterns.
+
+**Scheduled Pipeline Caching & Batching** — The pipeline currently runs end-to-end every 3 hours: fresh Exa searches, synthesis, credibility checks, Hermes verification, all serially. This is expensive and slow. Caching (6h TTL on Exa results per theme, prompt caching on Gemini synthesis) + batching (group credibility checks and Hermes verifications across a full scan's CRITICAL/HIGH set) can reduce cost ~40-60% and latency ~30-50% without losing freshness. Real-time webhooks (GitHub/HN/Twitter/LinkedIn) should never be batched — they need instant response when a founder signals. But the scheduled pipeline can batch heavily. This is foundational because it determines the cost-per-scan baseline that everything else is built on.
+
+**Net effect for roadmap prioritization:** All 12 roadmap items remain valuable, but the sequencing now clarifies that the Self-Improving Agent Stack and cost optimization should be early, not late. Everything else (memo generation, portfolio monitoring, network graphs) compounds better when you already have signal predictiveness measured, outcome validation working, and batch-verified cost efficiency.
+
+---
+
+### 2026-05-25 — Outcome-Driven Algorithmic Calibration: from context feedback to learned weights
+
+**The current feedback loop is reference-only.** When an analyst marks a company Interested or Pass with a note, the note is captured and fed back into the next scoring prompt as LLM context: "Here's what past decisions looked like; use this to calibrate your weighting." The LLM reads the pattern and adapts its framing for the next opportunity. This is genuinely useful — it captures fund taste — but it has a hard ceiling: after 15 decisions, the LLM has seen the full pattern space and further notes don't add signal. The system plateaus.
+
+**The upgrade path: measure actual outcomes, learn true signal predictiveness.**
+
+Implement outcome tracking:
+1. When an analyst marks a company Interested, flag it for follow-up
+2. Every month, ask: did this company raise? At what round? How much?
+3. For Pass decisions: did the company raise elsewhere (contradicting our pass)?
+4. For every decision, record the signals that drove it (e.g., "founder has prior exit," "GitHub 50+ stars," "HN frontpage")
+
+Measure signal predictiveness:
+1. For each signal type (founder pedigree, GitHub velocity, revenue traction, etc.), calculate: of 10 companies marked INTERESTED because of this signal, how many actually fundraised? (conversion rate)
+2. Compare: YC founder signal = 85% conversion. Angel background = 40% conversion. GitHub stars alone = 25%.
+3. For PASS decisions: which signals are over-predictive of rejection? (E.g., "early-stage domain" shouldn't disqualify if the product is solid.)
+
+Automatically adjust weights and rules:
+1. Hermes' hard rule "institutional equity funding → pass" can be refined: "undisclosed equity funding → pass, but disclosed safe-haven grants → moderate downgrade not pass"
+2. Scoring weights (currently 35/30/20/15) can shift based on what actually predicts outcomes: if founder pedigree is 85% predictive but GitHub velocity is 25%, traction weight should shift
+3. Thresholds can adapt: if CRITICAL tier has 60% close rate, raise the threshold; if MEDIUM tier has 10% close rate, lower it
+
+**Why this matters:**
+- Current feedback loop learns style, not substance. Upgraded version learns which signals actually predict fundraising.
+- After 30 decisions with outcomes, the system knows which signals are load-bearing vs. noise
+- Applies to signal ranking too: if Exa searches surfacing YC companies have 90% close rate but Reddit sources have 30%, Exa should be weighted higher in retrieval
+- Compounds over time: each new decision makes the system smarter, not just more contextually aware
+
+**Implementation roadmap:**
+- Phase 1: Outcome capture API (analyst marks company as "closed" or "raised" in Shortlist UI)
+- Phase 2: Monthly outcome aggregation (batch pull from Crunchbase, manual notes)
+- Phase 3: Signal predictiveness calculation (per-signal conversion rate stored in analytics table)
+- Phase 4: Automatic weight adjustment (scoring rubric becomes data-driven, not fixed)
+
+**What this unblocks:**
+- Risk flag automation: flags that predict negative outcomes surface automatically
+- Confidence scoring: system reports "I'm 90% sure this closes" vs "50/50 call"
+- Signal ranking: high-predictive sources get more volume in Stage 2 searches
+- Negative outcome learning: system learns from companies that raised but shouldn't have (burning out, team departures), not just ones that didn't
+
+---
+
+### 2026-05-25 — Scheduled Pipeline Caching & Batching: cost and latency optimization without sacrificing freshness
+
+**Current pipeline: end-to-end every 3 hours, no reuse.**
+
+Each 3-hour scan runs:
+1. Stage 1 (Theme extraction): Exa pre-verification + Gemini synthesis = 2 fresh calls
+2. Stage 2 (Signal ingestion): 5-8 theme queries × Exa + Grok calls = 10-15 searches
+3. Stage 3 (Signal extraction): Gemini synthesis on raw results = 1 fresh call
+4. Stage 4 (Scoring): Gemini synthesis on all opportunities = 1 fresh call
+5. Stage 5 (Enrichment): GitHub API, HN search = 5-10 fresh calls
+6. Stage 6 (Credibility + Hermes): credibility checks + 1 Hermes call per CRITICAL/HIGH = 10-20 fresh calls
+
+**Total per scan:** ~30-50 API calls, ~$0.50-0.60 cost, ~8-12 minutes latency. At 8 scans/day = ~$4-5 daily cost.
+
+**Caching opportunities:**
+
+*Exa semantic search results (6-hour TTL):*
+- Themes from Stage 1 don't change rapidly: "agentic orchestration for supply chain" means the same thing in hour 3 as in hour 0
+- Cache Exa results per theme query with 6h TTL: Exa searches for "agentic orchestration" at 3am, at 6am reuse the results with delta fetch ("newer than 3am")
+- Benefit: reduces Exa calls 60-70%, saves ~$0.25-0.35/scan
+
+*Gemini synthesis responses (prompt caching):*
+- Gemini 2.0 supports prompt caching: if the same system prompt + context (e.g., scoring rubric + feedback digest) repeats, the input is cached and tokens cost 90% less
+- Stage 4 scoring runs the same prompt every 3 hours: "You are a LAUNCH analyst. Here is the Goldilocks rubric. Here are decisions X, Y, Z to calibrate to. Score these opportunities."
+- Benefit: reduces Gemini cost ~70%, saves ~$0.02-0.05/scan, caching saves ~100 tokens per synthesize call
+
+*Batching credibility checks and Hermes verification:*
+- Current approach: for each CRITICAL/HIGH company (typically 5-15), run a separate credibility check (domain age, review platform Exa searches) and a separate Hermes call
+- Batched approach: collect all CRITICAL/HIGH companies, run domain age checks as a single batch operation, run all Hermes calls in parallel (vs sequential per-company)
+- Benefit: reduces latency 40-50% (parallel > sequential), reduces redundant API calls (one domain-age lookup service call instead of 5)
+
+**Webhook layer explicitly un-batched:**
+
+Real-time webhooks (GitHub star milestones, HN front page, Twitter posts from tracked handles, LinkedIn team changes) should fire instantly, not queue for batch. These are high-signal, high-velocity — a 30min delay between "founder posts" and "alert sent" is a loss.
+
+Architecture: webhooks fire to a real-time event queue (Redis, Kafka, or simple in-memory), immediately trigger Hermes conviction check + Slack alert. Scheduled pipeline operates separately.
+
+**Net effect on cost and latency:**
+
+| Metric | Current | With Caching+Batching | Improvement |
+|--------|---------|----------------------|-------------|
+| Cost/scan | $0.55 | $0.20-0.25 | 55-65% reduction |
+| Latency | 8-12 min | 3-5 min | 50-60% reduction |
+| Exa calls/scan | 10-15 | 4-6 | 60% reduction |
+| Gemini calls/scan | 3-5 | 2-3 | 40% reduction |
+| Hermes calls/scan | 5-10 | batched 1-2 | 70% reduction |
+
+**Implementation roadmap:**
+
+- Phase 1: Exa query result cache layer (Redis, 6h TTL, delta fetches)
+- Phase 2: Gemini prompt caching (enable on scoring + enrichment stages)
+- Phase 3: Batch credibility checks (single domain-age service call for 10 companies)
+- Phase 4: Batch Hermes verification (collect CRITICAL/HIGH, send as single request with multiple companies)
+- Phase 5: Webhook infrastructure (real-time event queue, instant conviction checks, Slack alerts)
+
+**Scaling implications:**
+
+At current cost ($0.55/scan × 8 scans/day = $4.40/day), the system scales to 100+ daily scans affordably. With optimization ($0.22/scan × 100 scans/day = $22/day), the system can run continuous monitoring or expand to multiple funds without prohibitive costs.
+
+---
+
 ### 2026-05-25 — Cost transparency: per-scan API cost breakdown now visible
 
 Added real-time cost tracking to every scan so you can see exactly how much each integration is spending.

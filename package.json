@@ -6,8 +6,8 @@
   "scripts": {
     "predev": "lsof -ti :3002 | xargs kill -9 2>/dev/null || true",
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=dist/server.js",
+    "start": "node dist/server.js",
     "migrate": "npx tsx scripts/migrate-to-sqlite.ts"
   },
   "dependencies": {
