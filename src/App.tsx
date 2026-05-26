@@ -36,8 +36,8 @@ const TIER: Record<SignalTier, { label: string; border: string; headerBg: string
   LOW:      { label: '🛑 Low',      border: 'border-zinc-800',     headerBg: '',                badge: 'bg-zinc-900 border-zinc-700 text-zinc-500' },
 };
 
-function normalizeTier(raw?: string): SignalTier {
-  if (!raw) return 'MEDIUM';
+function normalizeTier(raw?: unknown): SignalTier {
+  if (!raw || typeof raw !== 'string') return 'MEDIUM';
   const upper = raw.toUpperCase();
   if (upper.includes('CRITICAL')) return 'CRITICAL';
   if (upper.includes('HIGH'))     return 'HIGH';
@@ -64,7 +64,7 @@ function CredibilityBadge({ credibility, reason, onVerify, verifying }: {
   onVerify?: () => void;
   verifying?: boolean;
 }) {
-  const c = CRED[credibility];
+  const c = CRED[credibility] ?? CRED.plausible;
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border ${c.cls}`} title={reason}>
