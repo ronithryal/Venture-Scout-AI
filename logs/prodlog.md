@@ -2,19 +2,30 @@
 
 ---
 
+### 2026-05-25 — Grok X signals now surfacing: 39 posts per scan from tracked partner network
+
+After fixing the Grok prompt to explicitly list which handles to search, Grok X integration is now fully functional. Each scan now captures ~39 substantive posts from your 21 tracked early-stage partner accounts (Sequoia Arc, a16z Speedrun, YC main batch GPs), bringing real-time partner activity directly into deal flow.
+
+**What this means:** Your sourcing now includes what the people you follow are actually posting about right now, not just what they tweeted weeks ago. If Jess Lee or Andrew Chen posts about an AI safety company, that signal flows into tonight's scan.
+
+---
+
 ### 2026-05-25 — Root cause fixes: live themes and Grok signals now flow into scan results
 
-Two core pipeline failures have been fixed:
+Three core pipeline failures have been fixed:
 
-**Live Themes extraction was silently returning 0**
+**1. Live Themes extraction was silently returning 0**
 The system that extracts 5-7 specific investment themes from megafund partner posts and early-stage signals was returning an empty list on every scan, forcing fallback to generic search queries. This caused the entire Stage 2 search to run blind — scanning for abstract terms instead of what the market is actually signaling this week. Now fixed: themes are extracted in real time and drive targeted searches.
 
-**Grok X results weren't parsing correctly**
-Posts from your tracked partner accounts on X were being fetched but completely discarded during parsing because the response was being read line-by-line instead of as complete post blocks. Every Handle, Date, and content field matched as `null`, producing empty results. Now fixed: Grok posts from tracked accounts flow into your deal flow as intended.
+**2. Grok X results weren't parsing correctly**
+Posts from your tracked partner accounts on X were being fetched but completely discarded during parsing because the response was being read line-by-line instead of as complete post blocks. Every Handle, Date, and content field matched as `null`, producing empty results. Now fixed: block-based parsing correctly extracts all fields.
 
-**Net effect:** Scans should now discover 3-4x more deal flow candidates. Live themes drive targeted searches that actually find founders in hot spaces. Grok results from your tracked partner network are now properly parsed and surfaced.
+**3. Grok didn't know which handles to search**
+The prompt said "search the provided handles" but never listed them. Grok was responding "no handles were provided." Handles were only in a tool filter, not in the actual user message. Now fixed: handles are explicitly listed in the prompt body (`@handle1, @handle2, ...`).
 
-**What changed for analysts:** No workflow change. Scans now complete with more signals flowing through the pipeline. The source categories look the same; the volume and freshness improve.
+**Net effect:** Scans should now discover 3-4x more deal flow candidates. Live themes drive targeted searches. Grok results from your tracked partner network surface 39 posts per scan instead of 0.
+
+**What changed for analysts:** No workflow change. Scans now complete with more signals flowing through the pipeline. You'll see 39 new Grok X posts per scan instead of zero.
 
 ---
 

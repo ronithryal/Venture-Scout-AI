@@ -283,7 +283,9 @@ export async function grokXFromHandles(
           model: 'grok-3',
           input: [{
             role: 'user',
-            content: `Search for the ${totalWanted} most recent substantive posts from the provided handles. Skip retweets, polls, and one-word replies. For each post return:
+            content: `Search for the ${totalWanted} most recent substantive posts from these X/Twitter handles: ${batch.map(h => '@' + h).join(', ')}.
+Skip retweets, polls, and one-word replies. For each post return in this exact format (blank line between posts):
+
 URL: <url>
 Handle: <handle>
 Date: <YYYY-MM-DD or unknown>

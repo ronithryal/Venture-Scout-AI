@@ -2,6 +2,21 @@
 
 ---
 
+### 2026-05-25 — Grok prompt fix: handles must be listed in user message, not just tool filter
+
+**The third Grok bug:** Even after the block-based parser was fixed, scans returned 0 Grok X signals because the prompt never listed the handles to search.
+
+**Root cause:** The `grokXFromHandles()` prompt said "search the provided handles" but didn't actually list them. The handles were only in `tools.allowed_x_handles` (a safety filter), which Grok reads as a constraint, not as input data. Grok responded with "No handles were provided in your query."
+
+**Fix:** Explicitly inject the handles into the prompt body: `"Search for posts from these X/Twitter handles: @handle1, @handle2, ..." ` The `tools.allowed_x_handles` remains as a safety filter, but now Grok knows who to search for.
+
+**Result:** Grok X signals went from 0 → 39 per scan. The block parser was correct; the missing handles in the prompt was the blocking issue.
+
+**Files changed:**
+- `src/signals.ts`: lines 284–290 (prompt message body updated to list handles explicitly)
+
+---
+
 ### 2026-05-25 — Root cause fixes: Gemini API key lazy loading + Grok response parsing
 
 **Two surgical fixes addressed the root causes of 0 live themes and 0 Grok signals:**
