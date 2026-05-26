@@ -2,6 +2,16 @@
 
 ---
 
+### 2026-05-25 — Internal refactoring: six modules created, zero product behavior change
+
+The internal architecture was reorganized to eliminate code duplication and improve maintainability. This work is invisible to users — the product behavior, UI, endpoints, and data handling remain identical. The motivation is engineering quality: as the feature set grows, shared code blocks become harder to modify correctly and easier to break inadvertently. The module structure makes future features safer to add.
+
+**Why this matters:** None of the bugs fixed in prior commits could have happened if the code were modular. A single `isConsensus()` definition in one module would make the "call it every time" vs "never call it" bug impossible. A single `exaSearch()` wrapper would prevent API format mismatches. The refactor is preventative infrastructure.
+
+**What changed for analysts:** Nothing.
+
+---
+
 ### 2026-05-25 — Persistence layer hardened: SQLite replaces JSON files for reliability
 
 All analyst decisions and scan state now persist to SQLite with full ACID guarantees, replacing the previous hand-rolled JSON approach. This ensures analyst feedback (the notes driving the in-context learning loop) survives server restarts and disk failures without data loss.

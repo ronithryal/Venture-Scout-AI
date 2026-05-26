@@ -20,10 +20,11 @@ import {
   getStoredThemes, saveThemes,
   closeDb,
 } from './src/db.js';
-import { repairTruncatedJson, synthesize, extractLiveThemes, mergeIncomingThemes, buildFeedbackDigest } from './src/synthesis.js';
-import { DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, PartnerTier, PartnerProgram, PartnerRosterEntry } from './src/partners.js';
-import { exaSearch, pickSnippet, exaContents, SOURCE_AGGREGATOR_HOSTS, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS } from './src/signals.js';
-import { checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS } from './src/credibility.js';
+// TODO: Remove local definitions and import from modules instead
+// import { repairTruncatedJson, synthesize, extractLiveThemes, mergeIncomingThemes, buildFeedbackDigest } from './src/synthesis.js';
+// import { DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, PartnerTier, PartnerProgram, PartnerRosterEntry } from './src/partners.js';
+// import { exaSearch, pickSnippet, exaContents, SOURCE_AGGREGATOR_HOSTS, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS } from './src/signals.js';
+// import { checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS } from './src/credibility.js';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
