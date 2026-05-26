@@ -1,14 +1,12 @@
 # Venture Scout AI
 
-**Live:** [Venture Scout on Railway](https://empowering-heart-production.up.railway.app)
+**Live:** [Venture Scout on Railway](https://venture-scout-production.up.railway.app)
 
 ## What This Is
 
 Venture Scout AI is an agentic deal-flow engine that surfaces pre-seed and seed-stage companies before they raise — or before anyone else in a fund's network notices them.
 
 It runs a continuous background pipeline that monitors VC partner activity on X/Twitter, Hacker News launches, GitHub repositories, Reddit communities, and the broader open web. Every signal it finds is synthesized, scored, and surfaced in a real-time dashboard. The fund analyst never has to open a feed; the system does the monitoring and delivers tiered, ranked opportunities with a written thesis attached to each one.
-
-The current live system sits at `localhost:3002` during development. It ingests, scores, and renders results with no manual intervention needed.
 
 ---
 
