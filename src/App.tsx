@@ -1341,8 +1341,8 @@ export default function App() {
 
   const counts: Record<Tab, number> = {
     dealflow:  state.opportunities.length,
-    shortlist: Object.values(state.outcomes).filter(o => o === 'interested').length,
-    passlist:  Object.values(state.outcomes).filter(o => o === 'pass').length,
+    shortlist: dedupeOpps([...state.opportunities, ...(state.flagged ?? []), ...(state.decidedOpps ?? [])]).filter(o => state.outcomes[o.id] === 'interested').length,
+    passlist:  dedupeOpps([...state.opportunities, ...(state.flagged ?? []), ...(state.decidedOpps ?? [])]).filter(o => state.outcomes[o.id] === 'pass').length,
     founders:  state.founderThemes?.length ?? 0,
     partners:  state.partnerActivity.length,
     themes:    state.themes.length,
