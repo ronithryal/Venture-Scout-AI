@@ -23,7 +23,7 @@ Gemini reads the builder pre-pass output alongside recent VC partner posts and i
 **Stage 2 — Signal Ingestion**
 Multiple source paths run in parallel using the extracted themes as search intent:
 - **Exa Neural Search** (semantic, not keyword) queries GitHub, Reddit, Hacker News, ProductHunt, SBIR.gov/grants.gov (federal pre-seed grants), USPTO patent filings, and the open web. Exa's neural retrieval finds things like "founder building compliance automation" without needing to know the company name.
-- **Grok API** (xAI first-party firehose) fetches real-time X/Twitter posts from tracked partner handles only — Exa cannot access X's authenticated content. Grok output feeds Founder Themes context, not deal flow directly.
+- **Grok API** (xAI first-party firehose) fetches real-time X/Twitter posts from tracked partner handles only — Exa cannot access X's authenticated content. Grok results feed both the main deal flow signal array and Founder Themes context.
 
 Press releases, aggregator noise, and signals from already-funded companies are filtered at ingestion via `isPressRelease()` and `isConsensus()` guards.
 
@@ -39,13 +39,33 @@ Every extracted company is scored across four dimensions:
 
 Each company receives a `SignalTier`: **CRITICAL**, **HIGH**, **MEDIUM**, or **LOW**, plus a composite score (0–5) and a written `takeaway` explaining the thesis in two sentences.
 
+Scoring is self-calibrating. All analyst decisions — Interested, Pass, or Flag — are persisted to `data/venture-scout.db` with an optional note. Once 3 or more noted decisions accumulate, a feedback digest is prepended to every subsequent scoring prompt:
+
+```
+VC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):
+- INTERESTED: "semble" — "great wedge into a fragmented market, founder has prior exit"
+- PASS: "rushdb" — "too infrastructure-heavy for our pre-seed focus"
+- PASS: "aproxymade" — "no verifiable team, domain 3 weeks old"
+Apply: weight factors that drove past "interested" decisions higher; downgrade factors that repeatedly led to "pass".
+```
+
+The rubric weights stay fixed (35/30/20/15) — only Gemini's framing adapts. The digest is capped at 10 decisions (~400 tokens). Calibration status is visible in the dashboard header ("Learning (2/3 notes)" → "Calibrated (3 decisions)"); the "Clear History" button in Shortlist/Pass tabs resets the log if strategy changes.
+
+
 **Stage 5 — Enrichment**
 CRITICAL and HIGH companies are automatically enriched: GitHub star counts, recent push dates, infrastructure signals, and HN thread engagement are pulled and attached to the opportunity card.
 
 **Stage 6 — Credibility Check & Hermes Agentic Conviction**
 Active credibility verification runs on top-tier signals: domain age check, named claims search, review platform hits (Product Hunt, G2), team LinkedIn verifiability, and homepage funding language scrape.
 
-In parallel, **Hermes** (an agentic research agent) conducts deep conviction verification on CRITICAL and HIGH opportunities. It autonomously searches the web to verify product existence, flag undisclosed equity funding, and surface supporting evidence. Hermes returns a conviction level (strong/moderate/weak/pass) that can downgrade opportunities if signals are thin or funding is undisclosed. This layer catches hallucinated or inflated companies before they reach the analyst's inbox.
+In parallel, **Hermes** (an agentic research agent) runs a single targeted Exa search per opportunity and returns a structured conviction assessment. Any evidence of institutional equity funding (VC, angel, convertible notes) is a hard pass — non-negotiable. Conviction levels and their effect on tier:
+
+- **strong** — all signals verified, live product, traction evident; no tier change
+- **moderate** — good signals with some corroboration gaps; no tier change
+- **weak** — thin or inconsistent evidence; downgrades one tier (CRITICAL→HIGH, HIGH→MEDIUM, MEDIUM→LOW)
+- **pass** — undisclosed funding or fewer than 2 corroborating signals; downgrades to LOW
+
+The conviction result is appended to the opportunity's `takeaway` so analysts see what Hermes found and why. Hermes requires `HERMES_API_KEY`; without it, credibility checks fall back to passive verification only (domain age, LinkedIn, Product Hunt).
 
 ---
 
