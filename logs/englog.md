@@ -2,6 +2,38 @@
 
 ---
 
+### 2026-05-25 — Deal flow preservation: undecided companies persist across scans
+
+Implemented logic to preserve companies in Deal Flow that have no outcome decision (interested/pass/flagged), preventing them from disappearing when not found in a new scan.
+
+**Problem:** When a user viewed a company but didn't take action, and that company wasn't found in a subsequent scan, it would vanish from Deal Flow entirely.
+
+**Solution — three-layer preservation:**
+
+1. **On app initialization:** `restoreUntouchedCompanies()` scans all saved sources (opportunities, flagged, decidedOpps) and restores any companies with NO outcome decision to the opportunities array. Companies already decided on are excluded.
+
+2. **During scan start:** Before a new scan runs, all current deal flow opportunities are preserved in memory. Only companies with `!outcomes[opp.id]` are saved.
+
+3. **After scan completes:** Once new opportunities are extracted/verified/scored:
+   - New scan results are finalized (including flagged opportunities)
+   - Preserved untouched companies are merged back in
+   - Only restore companies NOT found in the new scan (avoids duplicates)
+   - Logs: `→ restored {n} undecided companies from previous scans`
+
+**Result:**
+- Undecided companies never disappear from Deal Flow
+- New scan results take precedence (deduplication on ID)
+- Users can decide action later without fear of losing context
+- Works across multiple scans and app restarts
+
+**Files changed:**
+- `server.ts`: Added `untouchedOpps` preservation at scan start (line 404-405), added `restoreUntouchedCompanies()` function (line 227-245), added merge-back logic after flagged routing (line 1517-1526)
+
+**Documentation:**
+- `DEAL_FLOW_PRESERVATION.md`: Complete feature overview with edge cases and workflow
+
+---
+
 ### 2026-05-25 — Audit & fixes: Dual-write elimination, Grok integration, Hermes optimization, module split finalization
 
 Completed comprehensive audit and fixed all four identified issues in the server pipeline:

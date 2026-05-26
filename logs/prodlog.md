@@ -2,6 +2,23 @@
 
 ---
 
+### 2026-05-25 — Deal flow persistence: undecided companies stay visible across scans
+
+Companies in your Deal Flow tab no longer disappear when you haven't taken action on them. If you viewed a founder and decided to think about them more, that company stays in your Deal Flow list even after you run a new scan.
+
+**How it works:**
+1. When you view a company, it stays in Deal Flow until you mark it Interested, Pass, or Flag
+2. If a new scan doesn't find that company, it's still there — preserved from the previous scan
+3. If the company appears in a new scan, you see the fresh version (updated signals, new score)
+4. Works across app restarts — undecided companies are restored on startup
+
+**Why this matters:**
+Previously, an undecided company would vanish if it didn't appear in the next scan results. You'd lose context and have to re-evaluate from scratch if you wanted to revisit. Now you can curate at your own pace — companies stay visible until you decide.
+
+**What changed for you:** None of the workflow changes. Just fewer companies disappearing, cleaner deal flow history across multiple scans.
+
+---
+
 ### 2026-05-25 — Signal pipeline hardening: Grok X integration, single-pass Hermes verification, module cleanup
 
 Three pipeline improvements that strengthen deal discovery without changing analyst workflow:
