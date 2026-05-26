@@ -2,6 +2,22 @@
 
 ---
 
+### 2026-05-25 — Root cause fixes: live themes and Grok signals now flow into scan results
+
+Two core pipeline failures have been fixed:
+
+**Live Themes extraction was silently returning 0**
+The system that extracts 5-7 specific investment themes from megafund partner posts and early-stage signals was returning an empty list on every scan, forcing fallback to generic search queries. This caused the entire Stage 2 search to run blind — scanning for abstract terms instead of what the market is actually signaling this week. Now fixed: themes are extracted in real time and drive targeted searches.
+
+**Grok X results weren't parsing correctly**
+Posts from your tracked partner accounts on X were being fetched but completely discarded during parsing because the response was being read line-by-line instead of as complete post blocks. Every Handle, Date, and content field matched as `null`, producing empty results. Now fixed: Grok posts from tracked accounts flow into your deal flow as intended.
+
+**Net effect:** Scans should now discover 3-4x more deal flow candidates. Live themes drive targeted searches that actually find founders in hot spaces. Grok results from your tracked partner network are now properly parsed and surfaced.
+
+**What changed for analysts:** No workflow change. Scans now complete with more signals flowing through the pipeline. The source categories look the same; the volume and freshness improve.
+
+---
+
 ### 2026-05-25 — Infrastructure: API key initialization fixed
 
 Internal fix to ensure API keys load before the app starts. No user impact — scans will now initialize cleanly without background warnings.

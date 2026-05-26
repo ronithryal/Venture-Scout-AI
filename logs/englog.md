@@ -2,6 +2,30 @@
 
 ---
 
+### 2026-05-25 — Root cause fixes: Gemini API key lazy loading + Grok response parsing
+
+**Two surgical fixes addressed the root causes of 0 live themes and 0 Grok signals:**
+
+**Issue 1: `extractLiveThemes` returned 0 because `GEMINI_API_KEY` was empty at module load time**
+
+The `synthesis.ts` module was instantiating `const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''` and `const gemini = new GoogleGenAI({...})` at the top level. In ES modules, these lines execute synchronously when the module is imported — before `dotenv.config()` runs in `server.ts`. Result: the Gemini client was initialized with an empty key. The previous commit (95d32d6) corrected the dotenv *path* but didn't solve the fundamental timing issue.
+
+**Fix:** Moved both `GEMINI_API_KEY` read and client instantiation into the `synthesize()` function, executing them at call time (after dotenv has loaded). Changed `extractLiveThemes()` guard from `if (!GEMINI_API_KEY)` to `if (!process.env.GEMINI_API_KEY)` to check the env var directly.
+
+**Issue 2: Grok response parser was line-by-line instead of block-by-block**
+
+The `grokXFromHandles()` function in `signals.ts` was parsing Grok's response by filtering for lines containing `URL:`, then trying to match all four fields (URL, Handle, Date, Quote) against a single line. Since Grok returns each field on its own line, only the URL regex would match — Handle/Date/Quote were always `null`, producing empty `snippet` strings. The dedup filter `if (!url || snippet.length < 20) return null` dropped every result downstream.
+
+**Fix:** Changed parser to split by double newlines (`/\n{2,}/`) to get post blocks, then run all four regexes against each entire block. Used the `/s` flag on the Quote regex to handle multiline content. Added a counter to respect `totalWanted` limit.
+
+**Files changed:**
+- `src/synthesis.ts`: lines 3–6, 36–38, 91
+- `src/signals.ts`: lines 316–332
+
+**TypeScript clean.** Both fixes are minimal, surgical, and target the exact failure points identified in the diagnostic.
+
+---
+
 ### 2026-05-25 — API key loading: moved dotenv.config() before module imports
 
 Fixed a subtle ES module initialization order bug where environment variables weren't available when synthesis.ts initialized the Gemini client.

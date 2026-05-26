@@ -313,12 +313,14 @@ Quote: <post text>`,
       const content: string = textBlock?.text ?? '';
       if (!content) continue;
 
-      const lines = content.split('\n').filter(l => l.includes('URL:'));
-      for (const line of lines.slice(0, totalWanted)) {
-        const urlMatch    = line.match(/URL:\s*(https?:\S+)/);
-        const handleMatch = line.match(/Handle:\s*@?(\S+)/);
-        const dateMatch   = line.match(/Date:\s*(\d{4}-\d{2}-\d{2}|unknown)/i);
-        const quoteMatch  = line.match(/Quote:\s*(.+)/);
+      const blocks = content.split(/\n{2,}/);
+      let count = 0;
+      for (const block of blocks) {
+        if (count >= totalWanted) break;
+        const urlMatch    = block.match(/URL:\s*(https?:\S+)/);
+        const handleMatch = block.match(/Handle:\s*@?(\S+)/);
+        const dateMatch   = block.match(/Date:\s*(\d{4}-\d{2}-\d{2}|unknown)/i);
+        const quoteMatch  = block.match(/Quote:\s*(.+)/s);
         if (!urlMatch) continue;
         const publishedDate = dateMatch?.[1] && dateMatch[1].toLowerCase() !== 'unknown'
           ? dateMatch[1] : undefined;
@@ -329,6 +331,7 @@ Quote: <post text>`,
           snippet: quoteMatch?.[1]?.trim() ?? '',
           publishedDate,
         });
+        count++;
       }
     } catch (err: any) {
       console.warn(`[Grok] Batch failed, skipping:`, err?.message);

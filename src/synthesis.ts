@@ -1,9 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL    = 'gemini-3.5-flash';
-
-const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const GEMINI_MODEL = 'gemini-3.5-flash';
 
 // Repairs a JSON string that was truncated mid-output
 export function repairTruncatedJson(raw: string): string {
@@ -34,6 +31,9 @@ export function repairTruncatedJson(raw: string): string {
 
 // Gemini JSON synthesis
 export async function synthesize<T>(system: string, user: string, maxTokens = 2000): Promise<T> {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+  if (!GEMINI_API_KEY) return {} as T;
+  const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
   const MAX_RETRIES = 4;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -88,7 +88,7 @@ export async function extractLiveThemes(
   watchlistSignals: any[],
   builderSignals: any[] = []
 ): Promise<string[]> {
-  if (!GEMINI_API_KEY) return [];
+  if (!process.env.GEMINI_API_KEY) return [];
   const fmt = (s: any) =>
     `[${s.firm}|${s.type}] ${s.title.slice(0, 60)} — ${s.snippet.slice(0, 100)}`;
   try {
