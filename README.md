@@ -12,13 +12,20 @@ It runs a continuous background pipeline that monitors VC partner activity on X/
 
 ## How the Pipeline Works
 
-The system runs in six stages, triggered automatically every 3 hours and on-demand:
+The system runs in seven stages, triggered on-demand via the "Scan Now" button (auto-scan is implemented but disabled by default — enable by calling `startAutoScan()` in server.ts, which fires an initial scan 15s after boot then every 3 hours via `setInterval`):
+
+**Stage 0.5 — Builder Pre-Pass**
+Before theme extraction, the pipeline fetches ~60 posts from quiet-builder subreddits (Indie Hackers, r/SideProject, r/microsaas, r/IMadeThis) with no theme gate. This gives Stage 1 real builder discourse context before themes are set — preventing megafund commentary from dominating the extraction.
 
 **Stage 1 — Theme Extraction**
-Gemini 3.5 Flash reads recent VC partner posts and investment announcements, then extracts 5–8 investment themes the firm is actively signaling — e.g. "agentic infrastructure for enterprise" or "open-source LLM fine-tuning tooling." These themes steer what the system searches for next.
+Gemini reads the builder pre-pass output alongside recent VC partner posts and investment announcements, then extracts 5–8 investment themes the fund is actively signaling — e.g. "agentic infrastructure for enterprise" or "open-source LLM fine-tuning tooling." Builder discourse and early-stage investment signals are weighted highest; general multi-stage GP commentary is weighted lowest. These themes steer what the system searches for next.
 
 **Stage 2 — Signal Ingestion**
-Exa Neural Search (semantic, not keyword) queries GitHub, X/Twitter, Reddit, Hacker News, and the open web using the extracted themes as search intent. It fetches the most recent, relevant pages with highlight extraction. Exa's neural retrieval means it finds things like "ex-Stripe engineer building compliance automation" without needing to know the company name.
+Multiple source paths run in parallel using the extracted themes as search intent:
+- **Exa Neural Search** (semantic, not keyword) queries GitHub, Reddit, Hacker News, ProductHunt, SBIR.gov/grants.gov (federal pre-seed grants), USPTO patent filings, and the open web. Exa's neural retrieval finds things like "founder building compliance automation" without needing to know the company name.
+- **Grok API** (xAI first-party firehose) fetches real-time X/Twitter posts from tracked partner handles only — Exa cannot access X's authenticated content. Grok output feeds Founder Themes context, not deal flow directly.
+
+Press releases, aggregator noise, and signals from already-funded companies are filtered at ingestion via `isPressRelease()` and `isConsensus()` guards.
 
 **Stage 3 — Signal Extraction**
 Gemini takes the raw search results and structures them: company name, product description, founding signal type (launch, open-source release, founder post, pain thread), and what VC firms' orbits it showed up in. Each result is assigned a `SignalRole` — whether it's a product launch, a market pain signal, a partner post, or a portfolio-adjacent activity.
@@ -44,7 +51,7 @@ In parallel, **Hermes** (an agentic research agent) conducts deep conviction ver
 
 ## Self-Improving Scoring
 
-The system records every analyst decision — Interested, Pass, or Flag — along with an optional written note explaining the reasoning. All decisions are persisted to `data/decisions.json` for historical tracking. When 3 or more decisions with notes accumulate, a feedback digest is injected into future scoring prompts:
+The system records every analyst decision — Interested, Pass, or Flag — along with an optional written note explaining the reasoning. All decisions are persisted to `data/venture-scout.db` (SQLite, WAL mode) for historical tracking. When 3 or more decisions with notes accumulate, a feedback digest is injected into future scoring prompts:
 
 ```
 VC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):
@@ -78,7 +85,7 @@ The more decisions the analyst logs with notes, the more tuned the output become
 
 Hermes is an optional but powerful layer that catches deals requiring deeper scrutiny. It's an agentic research agent with access to live web search (via Exa) that:
 
-- **Autonomously verifies claims**: Can run up to 3 targeted searches per opportunity to confirm product existence, find supporting press, or validate founding signals
+- **Autonomously verifies claims**: Runs a single targeted Exa search per opportunity to confirm product existence, find supporting press, or validate founding signals — structured as a deterministic single-pass call rather than a polling loop
 - **Enforces hard rules**: Immediately flags any opportunity with undisclosed equity funding (VC, angel, convertible notes) as "pass" — non-negotiable red line
 - **Returns conviction levels**:
   - **strong**: All signals verified, live product, traction evident
@@ -96,10 +103,11 @@ Hermes is optional (requires `HERMES_API_KEY`). Without it, the system falls bac
 
 | Stage | Model | Role |
 |---|---|---|
-| Theme Extraction | **Gemini 3.5 Flash** | Structured JSON extraction from VC social content |
-| Signal Retrieval | **Exa Neural Search** | Semantic web search with domain-level targeting |
+| Theme Extraction | **Gemini 3.5 Flash** | Structured JSON extraction from VC social content and builder discourse |
+| X/Twitter Signal Ingestion | **Grok (xAI Responses API)** | Real-time X post retrieval from tracked partner handles via first-party firehose |
+| Signal Retrieval | **Exa Neural Search** | Semantic web search across GitHub, Reddit, HN, ProductHunt, SBIR.gov, USPTO, open web |
 | Opportunity Scoring | **Gemini 3.5 Flash** | Synthesis 1–5: extraction, scoring, enrichment |
-| Credibility Verification | **Hermes-3-Llama-3.1-70B** (optional) | Agentic research: verifies claims, flags undisclosed funding, returns conviction assessment |
+| Credibility Verification | **Hermes-3-Llama-3.1-70B** (optional) | Agentic research: single-pass Exa search + conviction assessment; flags undisclosed funding |
 | Fallback Synthesis | **Gemini 3.5 Flash** | Structured verification when Hermes unavailable; active credibility checks (domain age, LinkedIn, Product Hunt) |
 | Theme Synthesis | **Gemini 3.5 Flash** | Investment theme clustering and multi-firm signal correlation |
 

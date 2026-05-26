@@ -8,7 +8,7 @@ npm run dev
 
 The `predev` script automatically clears port 3002 before starting.
 
-Copy the env template and fill in your keys:
+Copy the env template (**.env.example**) and fill in your keys:
 
 ```bash
 cp .env.example .env
