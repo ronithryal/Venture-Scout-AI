@@ -2,6 +2,21 @@
 
 ---
 
+### 2026-05-25 — API key loading: moved dotenv.config() before module imports
+
+Fixed a subtle ES module initialization order bug where environment variables weren't available when synthesis.ts initialized the Gemini client.
+
+**Problem:** In ES modules, `import` statements run synchronously before the rest of the file executes. The code was importing the synthesis module (line 23) before calling `dotenv.config()` (line 29). When synthesis.ts ran its top-level code, it initialized the Gemini client with `GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''`, but the .env file hadn't been loaded yet. Result: API key was empty, Gemini client initialization logged "API key should be set when using the Gemini API".
+
+**Solution:** Moved `dotenv.config()` to run *before* any imports that use environment variables. Changed load path from `../.env` (parent directory) to `.env` (local folder) to leverage the new local .env file setup.
+
+**Files changed:**
+- `server.ts`: moved `import dotenv`, `import path`, `import { fileURLToPath }` and `dotenv.config()` call to the very top (before line 5, before other imports). Updated path to `.env` (local) instead of `../.env` (parent).
+
+**TypeScript clean.** No behavior change — API keys now load correctly on app startup.
+
+---
+
 ### 2026-05-25 — Deal flow preservation: undecided companies persist across scans
 
 Implemented logic to preserve companies in Deal Flow that have no outcome decision (interested/pass/flagged), preventing them from disappearing when not found in a new scan.

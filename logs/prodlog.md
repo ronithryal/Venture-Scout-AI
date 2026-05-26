@@ -2,6 +2,12 @@
 
 ---
 
+### 2026-05-25 — Infrastructure: API key initialization fixed
+
+Internal fix to ensure API keys load before the app starts. No user impact — scans will now initialize cleanly without background warnings.
+
+---
+
 ### 2026-05-25 — Deal flow persistence: undecided companies stay visible across scans
 
 Companies in your Deal Flow tab no longer disappear when you haven't taken action on them. If you viewed a founder and decided to think about them more, that company stays in your Deal Flow list even after you run a new scan.
