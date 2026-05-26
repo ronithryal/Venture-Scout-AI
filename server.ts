@@ -28,6 +28,7 @@ import { DEFAULT_PARTNERS, EARLY_STAGE_LANGUAGE, isEarlyStageSignal, PartnerTier
 import { exaSearch, pickSnippet, exaContents, SOURCE_AGGREGATOR_HOSTS, resolveHomepageFromSignals, hnSearch, githubRepoSearch, hasStartupInfra, redditFetch, sanitizePublishedDate, makeSignal, isNoise, isConsensus, isWithinWindow, isXEngagementNoise, NOISE_TERMS, CONSENSUS_TERMS, X_ENGAGEMENT_NOISE, THESIS_SUBREDDITS, QUIET_BUILDER_SUBREDDITS, getTrackedXHandles, grokXFromHandles, isPressRelease, isVcToolRepo } from './src/signals.js';
 import { checkDomainAge, checkReviewPlatforms, checkTeamVerifiable, checkFundingStatus, checkHomepageFunding, runCredibilityChecks, extractHnUrlFromSignals, HOMEPAGE_FUNDING_FLAGS } from './src/credibility.js';
 import { conductHermesResearch, applyHermesConviction } from './src/hermes.js';
+import { resetTracking, getCostSummary } from './src/tokenTracking.js';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const EXA_API_KEY    = process.env.EXA_API_KEY || '';
@@ -399,6 +400,7 @@ async function runScan() {
   state.isScanning = true;
   state.progress   = [];
   state.error      = undefined;
+  resetTracking();
 
   // Preserve companies with no outcome (not interested/pass/flagged) before scan
   const untouchedOpps = state.opportunities.filter(opp => !outcomes[opp.id]);
@@ -1596,6 +1598,8 @@ ${goldilocksCtx}`,
     const critCount = state.opportunities.filter(o => o.score?.tier === 'CRITICAL').length;
     const highCount = state.opportunities.filter(o => o.score?.tier === 'HIGH').length;
     log(`Done — ${critCount} CRITICAL · ${highCount} HIGH · ${state.opportunities.length} opps · ${state.founderThemes.length} founder themes · ${state.investments.length} companies · ${state.themes.length} themes`);
+    const { lines: costLines } = getCostSummary();
+    costLines.forEach(line => log(line));
     await saveOpps();
     broadcast('complete', { lastScanned: state.lastScanned });
 
@@ -2184,7 +2188,7 @@ function startAutoScan(): void {
 
 const server = app.listen(PORT, () => {
   console.log(`\n🔭 Venture Scout (basic0j) → http://localhost:${PORT}\n`);
-  startAutoScan();
+  // startAutoScan(); // Disabled: scan only runs on manual "Scan Now" button click
 });
 
 process.on('SIGINT',  () => { closeDb(); server.close(); process.exit(0); });

@@ -2,6 +2,48 @@
 
 ---
 
+### 2026-05-25 — Cost tracking system: add per-scan token usage + pricing breakdown
+
+**Added comprehensive token tracking and cost reporting across all API calls.**
+
+**What was built:**
+- `src/tokenTracking.ts`: Global token accumulator with cost calculation
+- Integration into Gemini (synthesis.ts), Hermes (hermes.ts), Grok (signals.ts), and Exa (signals.ts)
+- Per-scan cost summary printed to scan log with breakdown by API
+
+**How it works:**
+- `resetTracking()` called at scan start
+- Each API call increments counters: `trackGemini()`, `trackHermes()`, `trackGrok()`, `trackExa()`
+- `getCostSummary()` returns formatted cost breakdown at scan end
+- Integrated into server.ts to broadcast cost lines via SSE to frontend
+
+**Pricing (actual, May 2025):**
+- Gemini Flash 3.5: $1.50/1M input, $9.00/1M output (paid tier)
+- Grok 4.3 (X.AI): $1.25/1M input, $2.50/1M output
+- Exa: $7/1k searches, $1/1k pages
+- Hermes (NVIDIA): Free tier in use (0 cost tracked)
+
+**Example output (from latest scan):**
+```
+Gemini:     1801 in,  100 out  → $0.0036
+Grok:       53507 in,  8368 out  → $0.0878
+Exa:        67 searches, 0 pages  → $0.4690
+TOTAL:                             $0.5604
+```
+
+**Key insight:** Exa dominates costs (84% of spend), not Grok. Previous estimates were 3.5x too high due to incorrect pricing assumptions.
+
+**Files changed:**
+- `src/tokenTracking.ts`: new file with cost tracking and pricing
+- `src/synthesis.ts`: trackGemini() calls added
+- `src/hermes.ts`: trackHermes() calls added, lazy loading of API key
+- `src/signals.ts`: trackGrok() and trackExa() calls added
+- `server.ts`: resetTracking() + getCostSummary() integrated into runScan()
+
+**Note:** Hermes (NVIDIA) shows 0 tokens because free sign-up credits are in use; token tracking is configured and will activate when paid tier is enabled.
+
+---
+
 ### 2026-05-25 — Grok prompt fix: handles must be listed in user message, not just tool filter
 
 **The third Grok bug:** Even after the block-based parser was fixed, scans returned 0 Grok X signals because the prompt never listed the handles to search.

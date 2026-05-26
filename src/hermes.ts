@@ -1,8 +1,7 @@
 import type { DealFlowOpportunity } from './types.js';
+import { trackHermes, trackExa } from './tokenTracking.js';
 
 export const HERMES_MODEL = 'NousResearch/Hermes-3-Llama-3.1-70B-FP8';
-export const HERMES_BASE_URL = process.env.HERMES_BASE_URL || 'https://integrate.api.nvidia.com/v1';
-const HERMES_API_KEY = process.env.HERMES_API_KEY || '';
 
 async function exaSearch(
   query: string,
@@ -43,13 +42,24 @@ export async function conductHermesResearch(opp: DealFlowOpportunity): Promise<{
   keySignals: string[];
   riskFlags: string[];
 } | null> {
+  const HERMES_API_KEY = process.env.HERMES_API_KEY || '';
+  const HERMES_BASE_URL = process.env.HERMES_BASE_URL || 'https://integrate.api.nvidia.com/v1';
+
+  console.log(`[Hermes] Called for ${opp.title}`);
+  console.log(`[Hermes] API Key available: ${HERMES_API_KEY ? 'YES' : 'NO'}`);
+  console.log(`[Hermes] Base URL: ${HERMES_BASE_URL}`);
+
   // No key → skip entirely; existing scoring pipeline is sufficient without Hermes
-  if (!HERMES_API_KEY) return null;
+  if (!HERMES_API_KEY) {
+    console.log('[Hermes] No API key configured, skipping');
+    return null;
+  }
 
   try {
     // Single targeted Exa search: deterministic query focused on funding + product existence
     const exaQuery = `"${opp.companyName || opp.title}" (funded OR "Y Combinator" OR "Series A" OR "raised" OR "launched" OR "product")`;
     const exaResults = await exaSearch(exaQuery, { numResults: 4 });
+    trackExa(1, exaResults.length);
     const exaContext = exaResults
       .map(r => `${r.title}\n${r.url}\n${pickSnippet(r)}`)
       .join('\n\n---\n\n')
@@ -107,6 +117,14 @@ ${exaContext || '(no results found)'}`;
     }
 
     const data = await res.json();
+    const usage = data.usage;
+    console.log(`[Hermes] Response keys:`, Object.keys(data));
+    if (usage) {
+      console.log(`[Hermes] Found usage:`, usage);
+      trackHermes(usage.prompt_tokens || 0, usage.completion_tokens || 0);
+    } else {
+      console.warn(`[Hermes] No usage data in response. Response:`, JSON.stringify(data).slice(0, 200));
+    }
     const text = data.choices?.[0]?.message?.content || '{}';
     return JSON.parse(text.replace(/^```json\s*/, '').replace(/```$/, '').trim());
   } catch (err) {

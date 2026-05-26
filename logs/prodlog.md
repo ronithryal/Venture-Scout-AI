@@ -2,6 +2,32 @@
 
 ---
 
+### 2026-05-25 — Cost transparency: per-scan API cost breakdown now visible
+
+Added real-time cost tracking to every scan so you can see exactly how much each integration is spending.
+
+**What you see:** At the end of every scan log, a cost summary shows:
+- Gemini tokens + cost
+- Grok tokens + cost
+- Exa searches/pages + cost
+- Hermes tokens + cost (when enabled)
+- **Total per-scan cost**
+
+**Example (latest scan):** ~$0.56/scan
+- 83% Exa search ($0.47)
+- 16% Grok ($0.09)
+- 1% Gemini ($0.004)
+
+**Why this matters:**
+- You now know the true operational cost per scan
+- Can optimize: e.g., if Exa searches are dominant, caching or query refinement becomes high-impact
+- Pricing is transparent and up-to-date (actual May 2025 rates from each provider)
+- Can set budgets or understand scaling costs before expanding to 1000s of companies
+
+**No configuration needed.** Tracking is automatic and appears in the scan log. Costs are calculated using current API pricing from Exa, X.AI (Grok), and Google (Gemini).
+
+---
+
 ### 2026-05-25 — Grok X signals now surfacing: 39 posts per scan from tracked partner network
 
 After fixing the Grok prompt to explicitly list which handles to search, Grok X integration is now fully functional. Each scan now captures ~39 substantive posts from your 21 tracked early-stage partner accounts (Sequoia Arc, a16z Speedrun, YC main batch GPs), bringing real-time partner activity directly into deal flow.

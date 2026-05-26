@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import type { RawSignal, SignalRole, Firm } from './types.js';
 import { DEFAULT_PARTNERS, ESTABLISHED_ORG_LOGINS } from './partners.js';
+import { trackGrok, trackExa } from './tokenTracking.js';
 
 // ─── Exa ───────────────────────────────────────────────────────────────────────
 export async function exaSearch(
@@ -23,7 +24,9 @@ export async function exaSearch(
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.results || []).filter((r: any) => r.url?.startsWith('http'));
+    const results = (data.results || []).filter((r: any) => r.url?.startsWith('http'));
+    trackExa(1, 0);
+    return results;
   } catch { return []; }
 }
 
@@ -43,10 +46,12 @@ export async function exaContents(urls: string[]): Promise<Array<{ url: string; 
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.results || []).map((r: any) => ({
+    const results = (data.results || []).map((r: any) => ({
       url: r.url || '',
       text: (r.text || '').slice(0, 4000),
     }));
+    trackExa(0, results.length);
+    return results;
   } catch { return []; }
 }
 
@@ -308,6 +313,10 @@ Quote: <post text>`,
       }
 
       const data = await res.json();
+      const usage = data.usage;
+      if (usage) {
+        trackGrok(usage.input_tokens || 0, usage.output_tokens || 0);
+      }
       const outputBlocks: any[] = data.output ?? [];
       const textBlock = outputBlocks
         .flatMap((b: any) => b.content ?? [])

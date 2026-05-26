@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { trackGemini } from './tokenTracking.js';
 
 const GEMINI_MODEL = 'gemini-3.5-flash';
 
@@ -49,6 +50,10 @@ export async function synthesize<T>(system: string, user: string, maxTokens = 20
         },
       });
       const raw = response.text ?? '{}';
+      const usage = (response as any).usageMetadata;
+      if (usage) {
+        trackGemini(usage.promptTokenCount || 0, usage.candidatesTokenCount || 0);
+      }
       try {
         return JSON.parse(raw) as T;
       } catch {

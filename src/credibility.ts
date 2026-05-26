@@ -1,5 +1,5 @@
 import type { DealFlowOpportunity } from './types.js';
-import { exaSearch, exaContents, resolveHomepageFromSignals } from './signals.js';
+import { exaSearch, exaContents } from './signals.js';
 
 // Step 1: Domain age via RDAP (free public API, no key required)
 export async function checkDomainAge(url: string): Promise<number | null> {
