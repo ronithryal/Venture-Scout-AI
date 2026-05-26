@@ -2161,8 +2161,8 @@ if (isDev) {
   const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa', root: __dir });
   app.use(vite.middlewares);
 } else {
-  app.use(express.static(path.join(__dir, 'dist')));
-  app.get('*', (_req, res) => res.sendFile(path.join(__dir, 'dist', 'index.html')));
+  app.use(express.static(__dir));
+  app.get('*', (_req, res) => res.sendFile(path.join(__dir, 'index.html')));
 }
 
 // ─── Auto-scan cadence ─────────────────────────────────────────────────────────
