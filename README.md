@@ -49,56 +49,6 @@ In parallel, **Hermes** (an agentic research agent) conducts deep conviction ver
 
 ---
 
-## Self-Improving Scoring
-
-The system records every analyst decision — Interested, Pass, or Flag — along with an optional written note explaining the reasoning. All decisions are persisted to `data/venture-scout.db` (SQLite, WAL mode) for historical tracking. When 3 or more decisions with notes accumulate, a feedback digest is injected into future scoring prompts:
-
-```
-VC FEEDBACK FROM PAST DECISIONS (calibrate your scoring to these patterns):
-- INTERESTED: "semble" — "great wedge into a fragmented market, founder has prior exit"
-- PASS: "rushdb" — "too infrastructure-heavy for our pre-seed focus"
-- PASS: "aproxymade" — "no verifiable team, domain 3 weeks old"
-Apply: weight factors that drove past "interested" decisions higher; downgrade factors that repeatedly led to "pass".
-```
-
-**How calibration works:**
-
-1. **Analyst decision** — Mark a company Interested, Pass, or Flag with an optional note explaining the reasoning
-2. **Decision logged** — Metadata persisted: company ID, tier, score, outcome, note, timestamp
-3. **Threshold check** — System monitors for 3+ decisions with notes (shown in header: "Learning (2/3 notes)" → "Calibrated (3 decisions)")
-4. **Feedback injection** — On next scoring pass, logged decisions are formatted and prepended to the LLM prompt
-5. **Recalibration** — Gemini weights scoring factors based on historical patterns (e.g., if all "interested" deals had founder exits, founder signal gets stronger weighting)
-6. **Continuous learning** — Each new noted decision refines the calibration; analyst sees calibration status update in real-time
-
-**Key constraints:**
-
-- Feedback only activates with 3+ noted decisions (insufficient signal = silent mode)
-- Scoring rubric weights stay fixed (35/30/20/15) — only the LLM's framing adapts
-- Digest limited to last 10 decisions (~400 tokens) to avoid prompt bloat
-- "Clear History" button (in Shortlist/Pass tabs) resets the log if strategy changes
-
-The more decisions the analyst logs with notes, the more tuned the output becomes to the fund's investment taste — without retraining or changing the underlying rubric.
-
----
-
-## Hermes: Agentic Conviction Verification
-
-Hermes is an optional but powerful layer that catches deals requiring deeper scrutiny. It's an agentic research agent with access to live web search (via Exa) that:
-
-- **Autonomously verifies claims**: Runs a single targeted Exa search per opportunity to confirm product existence, find supporting press, or validate founding signals — structured as a deterministic single-pass call rather than a polling loop
-- **Enforces hard rules**: Immediately flags any opportunity with undisclosed equity funding (VC, angel, convertible notes) as "pass" — non-negotiable red line
-- **Returns conviction levels**:
-  - **strong**: All signals verified, live product, traction evident
-  - **moderate**: Good signals but some gaps in corroboration
-  - **weak**: Thin signals or inconsistent evidence → downgrades opportunity one tier
-  - **pass**: Undisclosed funding or <2 corroborating signals → downgrades to LOW
-
-The conviction result is appended to the opportunity's thesis takeaway so analysts see not just what Hermes found, but why. Hermes runs in parallel with passive credibility checks (domain age, LinkedIn, Product Hunt) — they verify different attack surfaces.
-
-Hermes is optional (requires `HERMES_API_KEY`). Without it, the system falls back to Gemini-based synthesis and passive credibility checks — still robust, but without live-search conviction verification.
-
----
-
 ## Model Stack
 
 | Stage | Model | Role |
