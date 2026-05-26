@@ -42,7 +42,7 @@ const GEMINI_MODEL    = 'gemini-3.5-flash';
 const PORT            = parseInt(process.env.PORT || '3002', 10);
 const isDev          = process.env.NODE_ENV !== 'production';
 
-const DATA_DIR       = path.join(__dir, 'data');
+const DATA_DIR       = isDev ? path.join(__dir, 'data') : path.join(__dir, '..', 'data');
 const WATCHLIST_FILE = path.join(DATA_DIR, 'watchlist.json');
 
 const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY });

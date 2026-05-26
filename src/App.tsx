@@ -1347,7 +1347,7 @@ export default function App() {
     partners:  state.partnerActivity.length,
     themes:    state.themes.length,
     themesdb:  state.storedThemes?.length ?? 0,
-    flagged:   (state.flagged?.length ?? 0) + Object.values(state.outcomes).filter(o => o === 'flagged').length,
+    flagged:   (state.flagged?.length ?? 0) + dedupeOpps([...state.opportunities, ...(state.decidedOpps ?? [])]).filter(o => state.outcomes[o.id] === 'flagged').length,
     watchlist: state.watchlist.length,
   };
 
